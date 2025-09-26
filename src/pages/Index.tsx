@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import NetworkGraph from '@/components/NetworkGraph';
+import ForceGraph from '@/components/ForceGraph';
 import ParticipantModal from '@/components/ParticipantModal';
 import { entrepreneurs, edges, clusterColors } from '@/data/mockData';
 import { Entrepreneur } from '@/types/entrepreneur';
@@ -131,7 +131,7 @@ const Index = () => {
       <div className="flex-1 relative">
         <div className="absolute inset-0 p-4">
           <div className="h-full bg-card rounded-lg border overflow-hidden">
-            <NetworkGraph
+            <ForceGraph
               nodes={filteredEntrepreneurs}
               edges={edges}
               onNodeClick={handleNodeClick}
