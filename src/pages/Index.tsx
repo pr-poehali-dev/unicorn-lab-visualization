@@ -76,9 +76,9 @@ const Index: React.FC = () => {
       />
 
       {/* Компактные виджеты в одну линию */}
-      <div className="absolute top-8 left-8 flex items-center gap-3">
+      <div className="absolute top-8 left-8 flex items-center gap-2">
         {/* Поиск */}
-        <div className="bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border flex items-center gap-2">
+        <div className="bg-background/90 backdrop-blur-sm px-3 h-8 rounded-md border flex items-center gap-2">
           <Icon name="Search" size={16} className="text-muted-foreground" />
           <Input
             placeholder="Поиск..."
@@ -95,7 +95,7 @@ const Index: React.FC = () => {
               setShowClusterDropdown(!showClusterDropdown);
               setShowTagsDropdown(false);
             }}
-            className="bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border flex items-center gap-2 hover:bg-background/95 transition-colors"
+            className="bg-background/90 backdrop-blur-sm px-3 h-8 rounded-md border flex items-center gap-2 hover:bg-background/95 transition-colors"
           >
             <Icon name="Layers" size={16} className="text-muted-foreground" />
             <span className="text-sm">Кластер</span>
@@ -129,7 +129,7 @@ const Index: React.FC = () => {
               setShowTagsDropdown(!showTagsDropdown);
               setShowClusterDropdown(false);
             }}
-            className="bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border flex items-center gap-2 hover:bg-background/95 transition-colors"
+            className="bg-background/90 backdrop-blur-sm px-3 h-8 rounded-md border flex items-center gap-2 hover:bg-background/95 transition-colors"
           >
             <Icon name="Tags" size={16} className="text-muted-foreground" />
             <span className="text-sm">Теги</span>
