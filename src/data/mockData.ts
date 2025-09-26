@@ -76,14 +76,33 @@ export const entrepreneurs: Entrepreneur[] = [
 ];
 
 export const edges: GraphEdge[] = [
-  { source: '1', target: '4', weight: 0.8 },
-  { source: '2', target: '5', weight: 0.9 },
-  { source: '3', target: '6', weight: 0.95 },
-  { source: '1', target: '8', weight: 0.6 },
-  { source: '2', target: '7', weight: 0.5 },
-  { source: '4', target: '7', weight: 0.7 },
-  { source: '5', target: '8', weight: 0.4 },
-  { source: '3', target: '4', weight: 0.6 }
+  // Сильные связи внутри кластеров
+  { source: '1', target: '4', weight: 0.9 }, // IT и Digital
+  { source: '2', target: '5', weight: 0.85 }, // E-commerce
+  { source: '3', target: '6', weight: 0.95 }, // Образование
+  
+  // Межкластерные связи
+  { source: '1', target: '8', weight: 0.7 }, // IT -> FinTech
+  { source: '2', target: '7', weight: 0.5 }, // E-commerce -> HealthTech
+  { source: '4', target: '7', weight: 0.75 }, // IT -> HealthTech (AI в медицине)
+  { source: '5', target: '8', weight: 0.4 }, // E-commerce -> FinTech
+  { source: '3', target: '4', weight: 0.6 }, // EdTech -> IT (AI в образовании)
+  
+  // Дополнительные связи для насыщенности графа
+  { source: '1', target: '2', weight: 0.3 }, // IT -> E-commerce
+  { source: '3', target: '7', weight: 0.45 }, // EdTech -> HealthTech
+  { source: '6', target: '4', weight: 0.55 }, // EdTech -> IT
+  { source: '8', target: '2', weight: 0.65 }, // FinTech -> E-commerce
+  { source: '7', target: '3', weight: 0.35 }, // HealthTech -> EdTech
+  { source: '5', target: '7', weight: 0.5 }, // E-commerce -> HealthTech
+  { source: '1', target: '3', weight: 0.7 }, // IT -> EdTech (SaaS для образования)
+  { source: '8', target: '4', weight: 0.8 }, // FinTech -> IT (Big Data в финансах)
+  
+  // Слабые но важные связи
+  { source: '6', target: '7', weight: 0.25 }, // EdTech -> HealthTech
+  { source: '5', target: '1', weight: 0.4 }, // E-commerce -> IT
+  { source: '2', target: '8', weight: 0.3 }, // E-commerce -> FinTech
+  { source: '7', target: '8', weight: 0.2 } // HealthTech -> FinTech
 ];
 
 export const clusterColors: { [key: string]: string } = {
