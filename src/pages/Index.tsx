@@ -156,11 +156,10 @@ const Index = () => {
           <Button
             onClick={() => forceGraphRef.current?.resetNodePositions()}
             variant="outline"
-            size="sm"
-            className="flex items-center gap-2 bg-background/90 backdrop-blur"
+            size="icon"
+            className="bg-background/90 backdrop-blur h-8 w-8"
           >
-            <Icon name="RotateCcw" size={14} />
-            Сбросить позиции
+            <Icon name="RotateCcw" size={16} />
           </Button>
           <div className="bg-background/90 backdrop-blur px-3 py-2 rounded-lg border">
             <span className="text-sm text-muted-foreground">

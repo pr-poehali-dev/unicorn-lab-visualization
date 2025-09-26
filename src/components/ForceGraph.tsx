@@ -33,6 +33,30 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
   const nodePositionsRef = useRef<Map<string, { x: number; y: number; fx: number | null; fy: number | null }>>(new Map());
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Метод для сброса всех фиксированных позиций
+  const resetNodePositions = useCallback(() => {
+    const simNodes = nodesRef.current;
+    simNodes.forEach(node => {
+      node.fx = null;
+      node.fy = null;
+    });
+    
+    // Очищаем сохраненные позиции
+    nodePositionsRef.current.clear();
+    
+    // Перезапускаем симуляцию с большей энергией для перестроения графа
+    if (simulationRef.current) {
+      simulationRef.current
+        .alpha(1) // Полная энергия для полного перестроения
+        .restart();
+    }
+  }, []);
+
+  // Expose метод через ref
+  React.useImperativeHandle(ref, () => ({
+    resetNodePositions
+  }), [resetNodePositions]);
+
   // Инициализация симуляции
   useEffect(() => {
     // Преобразование узлов для симуляции с сохранением позиций
