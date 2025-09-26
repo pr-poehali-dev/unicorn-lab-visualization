@@ -9,11 +9,7 @@ const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img 
-              src="https://cdn.poehali.dev/files/c89340bd-1f40-4b4d-8f75-77fbf9a67772.jpg" 
-              alt="Unicorn LAB" 
-              className="h-8 w-8 object-contain"
-            />
+            <span className="text-3xl">🦄</span>
             <span className="font-semibold text-lg">Unicorn LAB</span>
           </Link>
           
