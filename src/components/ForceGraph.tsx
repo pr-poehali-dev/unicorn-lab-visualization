@@ -21,7 +21,7 @@ interface SimulationNode extends d3.SimulationNodeDatum {
   data: Entrepreneur;
 }
 
-const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, selectedCluster }) => {
+const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNodeClick, selectedCluster }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -454,6 +454,8 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
       />
     </div>
   );
-};
+});
+
+ForceGraph.displayName = 'ForceGraph';
 
 export default ForceGraph;
