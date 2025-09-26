@@ -114,7 +114,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
 
     const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
 
-    // Рисование связей с цветовой индикацией силы
+    // Рисование связей с оранжевым цветом разной насыщенности
     edges.forEach(edge => {
       if (!visibleNodeIds.has(edge.source as string) || !visibleNodeIds.has(edge.target as string)) return;
 
@@ -124,14 +124,11 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
       if (sourceNode && targetNode) {
         const weight = edge.weight || 0.5;
         
-        // Интерполяция цвета от красного (слабая связь) к зеленому (сильная связь)
-        const r = Math.floor(255 * (1 - weight));
-        const g = Math.floor(255 * weight);
-        const b = 0;
-        const opacity = 0.3 + (weight * 0.4); // от 0.3 до 0.7
+        // Оранжевый цвет с разной насыщенностью в зависимости от силы связи
+        const opacity = 0.2 + (weight * 0.6); // от 0.2 (слабая) до 0.8 (сильная)
         
-        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
-        ctx.lineWidth = 1 + (weight * 4); // от 1 до 5px
+        ctx.strokeStyle = `rgba(234, 88, 12, ${opacity})`; // Оранжевый #ea580c
+        ctx.lineWidth = 1 + (weight * 3); // от 1 до 4px
         ctx.beginPath();
         ctx.moveTo(sourceNode.x, sourceNode.y);
         ctx.lineTo(targetNode.x, targetNode.y);
@@ -145,26 +142,46 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
       const isDragged = draggedNode?.id === node.id;
       const nodeSize = isDragged ? 50 : (isHovered ? 45 : 40);
 
+      // Свечение для активного узла
+      if (isHovered || isDragged) {
+        const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeSize * 2);
+        const color = clusterColors[node.data.cluster] || '#ea580c';
+        glow.addColorStop(0, color + '33');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, nodeSize * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       // Тень для узла
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-      ctx.shadowBlur = 8;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 10;
       ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 2;
 
-      // Белая обводка узла
-      ctx.strokeStyle = isHovered || isDragged ? '#ffffff' : 'rgba(255, 255, 255, 0.8)';
-      ctx.lineWidth = isHovered || isDragged ? 3 : 2;
-      ctx.fillStyle = '#1a1a1a';
+      // Фон для узла с цветом кластера
+      const bgGradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeSize);
+      const color = clusterColors[node.data.cluster] || '#ea580c';
+      bgGradient.addColorStop(0, color);
+      bgGradient.addColorStop(1, color + '88');
+      
+      ctx.fillStyle = bgGradient;
       ctx.beginPath();
-      ctx.arc(node.x, node.y, nodeSize, 0, Math.PI * 2);
+      ctx.arc(node.x, node.y, nodeSize + 2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.stroke();
 
       // Сброс тени
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
+
+      // Белый круг для аватарки
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, nodeSize, 0, Math.PI * 2);
+      ctx.fill();
 
       // Emoji аватарка
       ctx.font = `${nodeSize}px Arial`;
@@ -178,12 +195,31 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
       ctx.textAlign = 'center';
       ctx.fillText(node.data.name, node.x, node.y + nodeSize + 20);
 
-      // Показываем кластер при наведении
-      if (isHovered || isDragged) {
-        ctx.font = '11px Inter';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.textAlign = 'center';
-        ctx.fillText(node.data.cluster, node.x, node.y + nodeSize + 35);
+      // Топ-3 тега при наведении
+      if ((isHovered || isDragged) && node.data.tags.length > 0) {
+        const topTags = node.data.tags.slice(0, 3);
+        ctx.font = '10px Inter';
+        
+        topTags.forEach((tag, index) => {
+          const tagY = node.y + nodeSize + 35 + (index * 15);
+          
+          // Фон для тега
+          const metrics = ctx.measureText(tag);
+          const padding = 6;
+          ctx.fillStyle = 'rgba(234, 88, 12, 0.2)';
+          ctx.roundRect(
+            node.x - metrics.width / 2 - padding, 
+            tagY - 8,
+            metrics.width + padding * 2,
+            16,
+            4
+          );
+          ctx.fill();
+          
+          // Текст тега
+          ctx.fillStyle = '#ea580c';
+          ctx.fillText(tag, node.x, tagY);
+        });
       }
     });
   }, [hoveredNode, draggedNode, selectedCluster]);
