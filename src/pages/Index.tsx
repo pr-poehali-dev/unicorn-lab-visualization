@@ -151,11 +151,22 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Счетчик узлов */}
-        <div className="absolute top-8 right-8 bg-background/90 backdrop-blur px-3 py-2 rounded-lg border">
-          <span className="text-sm text-muted-foreground">
-            {filteredEntrepreneurs.length} узлов
-          </span>
+        {/* Счетчик узлов и кнопка сброса */}
+        <div className="absolute top-8 right-8 flex items-center gap-2">
+          <Button
+            onClick={() => forceGraphRef.current?.resetNodePositions()}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 bg-background/90 backdrop-blur"
+          >
+            <Icon name="RotateCcw" size={14} />
+            Сбросить позиции
+          </Button>
+          <div className="bg-background/90 backdrop-blur px-3 py-2 rounded-lg border">
+            <span className="text-sm text-muted-foreground">
+              {filteredEntrepreneurs.length} узлов
+            </span>
+          </div>
         </div>
       </div>
 
