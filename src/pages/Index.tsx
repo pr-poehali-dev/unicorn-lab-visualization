@@ -163,7 +163,7 @@ const Index = () => {
           >
             <Icon name="RotateCcw" size={16} />
           </Button>
-          <div className="bg-background/90 backdrop-blur px-3 py-2 rounded-lg border">
+          <div className="bg-background/90 backdrop-blur px-3 h-8 flex items-center rounded-lg border">
             <span className="text-sm text-muted-foreground">
               {filteredEntrepreneurs.length} узлов
             </span>
