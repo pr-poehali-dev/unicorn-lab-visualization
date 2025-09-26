@@ -56,7 +56,7 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-[calc(100vh-4rem)] bg-background">
       {/* Боковая панель в стиле Kibana */}
       <div className="w-80 border-r bg-card p-4 overflow-y-auto">
         <h2 className="font-semibold mb-4 flex items-center gap-2">
