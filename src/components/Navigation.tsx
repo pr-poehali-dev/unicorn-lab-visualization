@@ -14,24 +14,7 @@ const Navigation = () => {
           </Link>
           
           <div className="flex items-center gap-4">
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Home className="w-4 h-4" />
-                <span className="hidden sm:inline">Главная</span>
-              </Button>
-            </Link>
-            <Link to="/search">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Search className="w-4 h-4" />
-                <span className="hidden sm:inline">Поиск</span>
-              </Button>
-            </Link>
-            <Link to="/network">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Network className="w-4 h-4" />
-                <span className="hidden sm:inline">Граф</span>
-              </Button>
-            </Link>
+            {/* Убрал лишние кнопки навигации */}
           </div>
         </div>
       </div>

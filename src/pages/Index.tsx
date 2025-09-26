@@ -1,93 +1,174 @@
-import React from 'react';
-import { Search, Users, Network } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, useCallback } from 'react';
+import { Search, Filter, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import Icon from '@/components/ui/icon';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import NetworkGraph from '@/components/NetworkGraph';
+import ParticipantModal from '@/components/ParticipantModal';
+import { entrepreneurs, edges, clusterColors } from '@/data/mockData';
+import { Entrepreneur } from '@/types/entrepreneur';
 
 const Index = () => {
+  const [selectedParticipant, setSelectedParticipant] = useState<Entrepreneur | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCluster, setSelectedCluster] = useState('Все');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Все уникальные теги
+  const allTags = Array.from(new Set(entrepreneurs.flatMap(e => e.tags))).sort();
+  const clusters = ['Все', ...Object.keys(clusterColors)];
+
+  // Фильтрация предпринимателей
+  const filteredEntrepreneurs = entrepreneurs.filter(entrepreneur => {
+    const matchesSearch = searchQuery === '' || 
+      entrepreneur.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entrepreneur.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesTags = selectedTags.length === 0 || 
+      selectedTags.some(tag => entrepreneur.tags.includes(tag));
+    
+    const matchesCluster = selectedCluster === 'Все' || 
+      entrepreneur.cluster === selectedCluster;
+    
+    return matchesSearch && matchesTags && matchesCluster;
+  });
+
+  const handleNodeClick = useCallback((node: Entrepreneur) => {
+    setSelectedParticipant(node);
+    setIsModalOpen(true);
+  }, []);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-background"></div>
-        <div className="relative container mx-auto px-4 py-20">
-          <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Unicorn LAB <span className="text-primary">Чатик</span>
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Визуализация сообщества предпринимателей с умной кластеризацией и поиском
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/search">
-                <Button size="lg" className="gap-2">
-                  <Search className="w-5 h-5" />
-                  Найти предпринимателей
-                </Button>
-              </Link>
-              <Link to="/network">
-                <Button size="lg" variant="outline" className="gap-2">
-                  <Network className="w-5 h-5" />
-                  Граф связей
-                </Button>
-              </Link>
-            </div>
+    <div className="flex h-screen bg-background">
+      {/* Боковая панель в стиле Kibana */}
+      <div className="w-80 border-r bg-card p-4 overflow-y-auto">
+        <h2 className="font-semibold mb-4 flex items-center gap-2">
+          <Icon name="Filter" size={16} />
+          Фильтры
+        </h2>
+        
+        {/* Поиск */}
+        <div className="mb-6">
+          <label className="text-sm text-muted-foreground mb-2 block">Поиск</label>
+          <div className="relative">
+            <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Имя или описание..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </div>
-      </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-card">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <Users className="w-12 h-12 mx-auto mb-4 text-primary" />
-              <h3 className="text-3xl font-bold mb-2">441</h3>
-              <p className="text-muted-foreground">Сообщений в чате</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-4 text-primary flex items-center justify-center">
-                <span className="text-2xl">🏷️</span>
-              </div>
-              <h3 className="text-3xl font-bold mb-2">50+</h3>
-              <p className="text-muted-foreground">Тегов и категорий</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-4 text-primary flex items-center justify-center">
-                <span className="text-2xl">🤖</span>
-              </div>
-              <h3 className="text-3xl font-bold mb-2">AI</h3>
-              <p className="text-muted-foreground">Умная кластеризация</p>
-            </div>
-          </div>
+        {/* Кластеры */}
+        <div className="mb-6">
+          <label className="text-sm text-muted-foreground mb-2 block">Кластер</label>
+          <Select value={selectedCluster} onValueChange={setSelectedCluster}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {clusters.map(cluster => (
+                <SelectItem key={cluster} value={cluster}>
+                  {cluster}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Возможности платформы</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="p-6 border rounded-lg">
-              <h3 className="text-xl font-semibold mb-3">Поиск по тегам</h3>
-              <p className="text-muted-foreground">
-                Быстро находите предпринимателей по интересующим вас тегам и направлениям
-              </p>
+        {/* Теги */}
+        <div className="mb-6">
+          <label className="text-sm text-muted-foreground mb-2 block">Теги</label>
+          <div className="flex flex-wrap gap-1">
+            {allTags.slice(0, 20).map(tag => (
+              <Badge
+                key={tag}
+                variant={selectedTags.includes(tag) ? "default" : "outline"}
+                className="cursor-pointer text-xs"
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* Статистика */}
+        <div className="mt-auto pt-4 border-t">
+          <div className="text-sm text-muted-foreground">
+            <div className="flex justify-between mb-1">
+              <span>Всего участников:</span>
+              <span className="font-medium text-foreground">{entrepreneurs.length}</span>
             </div>
-            <div className="p-6 border rounded-lg">
-              <h3 className="text-xl font-semibold mb-3">Графовая визуализация</h3>
-              <p className="text-muted-foreground">
-                Наглядное представление связей и кластеров в сообществе
-              </p>
-            </div>
-            <div className="p-6 border rounded-lg">
-              <h3 className="text-xl font-semibold mb-3">AI-кластеризация</h3>
-              <p className="text-muted-foreground">
-                Автоматическая группировка участников по схожести деятельности
-              </p>
+            <div className="flex justify-between">
+              <span>Показано:</span>
+              <span className="font-medium text-foreground">{filteredEntrepreneurs.length}</span>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+
+      {/* Основная область с графом */}
+      <div className="flex-1 relative">
+        <div className="absolute inset-0 p-4">
+          <div className="h-full bg-card rounded-lg border overflow-hidden">
+            <NetworkGraph
+              nodes={filteredEntrepreneurs}
+              edges={edges}
+              onNodeClick={handleNodeClick}
+              selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
+            />
+          </div>
+        </div>
+
+        {/* Легенда кластеров */}
+        <div className="absolute bottom-8 left-8 bg-background/90 backdrop-blur p-3 rounded-lg border">
+          <div className="flex flex-wrap gap-3">
+            {Object.entries(clusterColors).map(([cluster, color]) => (
+              <div key={cluster} className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: color }}
+                />
+                <span className="text-xs text-muted-foreground">{cluster}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Счетчик узлов */}
+        <div className="absolute top-8 right-8 bg-background/90 backdrop-blur px-3 py-2 rounded-lg border">
+          <span className="text-sm text-muted-foreground">
+            {filteredEntrepreneurs.length} узлов
+          </span>
+        </div>
+      </div>
+
+      {/* Модальное окно с карточкой участника */}
+      <ParticipantModal
+        participant={selectedParticipant}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 };
