@@ -141,25 +141,7 @@ const Index: React.FC = () => {
             <Icon name="ChevronDown" size={14} className="text-muted-foreground" />
           </button>
           
-          {showTagsDropdown && (
-            <div className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg p-3 min-w-[300px] max-h-[400px] overflow-y-auto z-50">
-              <div className="flex flex-wrap gap-1.5">
-                {tags.map(tag => (
-                  <Badge
-                    key={tag}
-                    variant={selectedTags.includes(tag) ? "default" : "outline"}
-                    className="text-xs cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => toggleTag(tag)}
-                  >
-                    {tag}
-                    {selectedTags.includes(tag) && (
-                      <Icon name="X" size={10} className="ml-1" />
-                    )}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
 
@@ -222,6 +204,93 @@ const Index: React.FC = () => {
             setPopupPosition(null);
           }}
         />
+      )}
+
+      {/* Попап с тегами */}
+      {showTagsDropdown && (
+        <>
+          {/* Затемнение фона */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowTagsDropdown(false)}
+          />
+          
+          {/* Попап */}
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border rounded-lg shadow-xl p-6 z-50 max-w-2xl max-h-[80vh] overflow-hidden">
+            {/* Заголовок */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Icon name="Tags" size={20} />
+                Выберите теги для фильтрации
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowTagsDropdown(false)}
+                className="h-8 w-8"
+              >
+                <Icon name="X" size={18} />
+              </Button>
+            </div>
+            
+            {/* Выбранные теги */}
+            {selectedTags.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm text-muted-foreground mb-2">Выбрано: {selectedTags.length}</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTags.map(tag => (
+                    <Badge
+                      key={tag}
+                      variant="default"
+                      className="cursor-pointer"
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {tag}
+                      <Icon name="X" size={12} className="ml-1" />
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Разделитель */}
+            {selectedTags.length > 0 && <div className="border-t mb-4" />}
+            
+            {/* Все теги */}
+            <div className="overflow-y-auto max-h-[50vh]">
+              <div className="flex flex-wrap gap-2">
+                {tags.filter(tag => !selectedTags.includes(tag)).map(tag => (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="cursor-pointer hover:bg-muted transition-colors"
+                    onClick={() => toggleTag(tag)}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            {/* Кнопки действий */}
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedTags([]);
+                }}
+                disabled={selectedTags.length === 0}
+              >
+                Сбросить все
+              </Button>
+              <Button
+                onClick={() => setShowTagsDropdown(false)}
+              >
+                Применить
+              </Button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
