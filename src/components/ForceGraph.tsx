@@ -270,18 +270,21 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
       // Топ-3 тега при наведении
       if ((isHovered || isDragged) && node.data.tags.length > 0) {
         const topTags = node.data.tags.slice(0, 3);
-        ctx.font = '10px Inter';
         
         topTags.forEach((tag, index) => {
           const tagY = node.y + nodeSize + 40 + (index * 25);
           
-          // Фон для тега
+          // Устанавливаем шрифт для правильного измерения
+          ctx.font = 'bold 11px Inter';
           const metrics = ctx.measureText(tag);
           const padding = 8;
           const clusterColor = clusterColors[node.data.cluster] || '#ea580c';
           
+          // Сохраняем текущее состояние
+          ctx.save();
+          
           // Темный фон с хорошей непрозрачностью
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+          ctx.fillStyle = 'rgba(26, 26, 26, 0.9)';
           ctx.roundRect(
             node.x - metrics.width / 2 - padding, 
             tagY - 10,
@@ -293,7 +296,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
           
           // Обводка цветом кластера
           ctx.strokeStyle = clusterColor;
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = 2;
           ctx.roundRect(
             node.x - metrics.width / 2 - padding, 
             tagY - 10,
@@ -305,8 +308,12 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
           
           // Текст тега белым цветом для контраста
           ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 11px Inter';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
           ctx.fillText(tag, node.x, tagY);
+          
+          // Восстанавливаем состояние
+          ctx.restore();
         });
       }
     });
