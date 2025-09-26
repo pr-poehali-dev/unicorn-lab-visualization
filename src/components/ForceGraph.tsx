@@ -76,8 +76,9 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
         .radius(60)
         .strength(0.7)
       )
-      .velocityDecay(0.6)
-      .alphaTarget(0);
+      .velocityDecay(0.4) // Уменьшаем затухание скорости для более плавной анимации
+      .alphaTarget(0)
+      .alphaDecay(0.02); // Медленное затухание энергии симуляции
 
     simulationRef.current = simulation;
 
@@ -294,7 +295,8 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
       dragStartPosRef.current = { x, y };
       node.fx = x;
       node.fy = y;
-      simulationRef.current?.alpha(0.3).restart();
+      // Увеличиваем энергию симуляции при перетаскивании
+      simulationRef.current?.alpha(0.5).restart();
     }
   }, [getNodeAtPosition]);
 
@@ -309,7 +311,8 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
     if (draggedNode) {
       draggedNode.fx = x;
       draggedNode.fy = y;
-      simulationRef.current?.alpha(0.3).restart();
+      // Увеличиваем энергию симуляции при перетаскивании
+      simulationRef.current?.alpha(0.5).restart();
     } else {
       const node = getNodeAtPosition(x, y);
       setHoveredNode(node?.id || null);
@@ -337,21 +340,22 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
           const globalY = rect.top + draggedNode.y;
           onNodeClick(draggedNode.data, { x: globalX, y: globalY });
         } else {
-          // Это было перетаскивание - фиксируем позицию
-          draggedNode.fx = draggedNode.x;
-          draggedNode.fy = draggedNode.y;
+          // Это было перетаскивание - освобождаем узел для плавной анимации
+          draggedNode.fx = null;
+          draggedNode.fy = null;
           nodePositionsRef.current.set(draggedNode.id, { 
             x: draggedNode.x, 
             y: draggedNode.y,
-            fx: draggedNode.x,
-            fy: draggedNode.y
+            fx: null,
+            fy: null
           });
         }
       }
 
       setDraggedNode(null);
       dragStartPosRef.current = null;
-      simulationRef.current?.alpha(0).restart();
+      // Плавно уменьшаем энергию симуляции вместо резкой остановки
+      simulationRef.current?.alphaTarget(0).restart();
     }
   }, [draggedNode, onNodeClick]);
 
