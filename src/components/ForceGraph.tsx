@@ -309,15 +309,34 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
   // Resize handler
   useEffect(() => {
     const handleResize = () => {
-      if (canvasRef.current) {
-        const { width, height } = canvasRef.current.getBoundingClientRect();
+      if (canvasRef.current && canvasRef.current.parentElement) {
+        const parent = canvasRef.current.parentElement;
+        const { width, height } = parent.getBoundingClientRect();
         setDimensions({ width, height });
+        
+        // Устанавливаем размеры канваса
+        canvasRef.current.width = width;
+        canvasRef.current.height = height;
+        canvasRef.current.style.width = `${width}px`;
+        canvasRef.current.style.height = `${height}px`;
       }
     };
 
-    handleResize();
+    // Небольшая задержка для корректного получения размеров
+    setTimeout(handleResize, 100);
+    
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    
+    // Наблюдатель за изменением размеров родителя
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (canvasRef.current?.parentElement) {
+      resizeObserver.observe(canvasRef.current.parentElement);
+    }
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -329,7 +348,12 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
       ref={canvasRef}
       width={dimensions.width}
       height={dimensions.height}
-      className="w-full h-full cursor-grab active:cursor-grabbing"
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'block'
+      }}
+      className="cursor-grab active:cursor-grabbing"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

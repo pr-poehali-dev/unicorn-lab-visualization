@@ -128,15 +128,17 @@ const Index = () => {
       </div>
 
       {/* Основная область с графом */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative overflow-hidden">
         <div className="absolute inset-0 p-4">
-          <div className="h-full bg-card rounded-lg border overflow-hidden">
-            <ForceGraph
-              nodes={filteredEntrepreneurs}
-              edges={edges}
-              onNodeClick={handleNodeClick}
-              selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
-            />
+          <div className="h-full w-full bg-card rounded-lg border overflow-hidden relative">
+            <div className="absolute inset-0">
+              <ForceGraph
+                nodes={filteredEntrepreneurs}
+                edges={edges}
+                onNodeClick={handleNodeClick}
+                selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
+              />
+            </div>
           </div>
         </div>
 
