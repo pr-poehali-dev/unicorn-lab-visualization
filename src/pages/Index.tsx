@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo } from 'react';
 import ForceGraph from '@/components/ForceGraph';
-import ParticipantModal from '@/components/ParticipantModal';
+import Popover from '@/components/Popover';
 import { entrepreneurs, edges, clusterColors } from '@/data/mockData';
 import { Entrepreneur } from '@/types/entrepreneur';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ const Index: React.FC = () => {
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
   const [showClusterDropdown, setShowClusterDropdown] = useState(false);
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
+  const [tagsButtonRef, setTagsButtonRef] = useState<HTMLButtonElement | null>(null);
+  const participantPopupRef = useRef<HTMLDivElement>(null);
 
   // Получаем уникальные кластеры и теги
   const clusters = useMemo(() => {
@@ -64,6 +66,21 @@ const Index: React.FC = () => {
         : [...prev, tag]
     );
   };
+
+  // Закрытие попапа участника при клике вне
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (participantPopupRef.current && !participantPopupRef.current.contains(event.target as Node)) {
+        setSelectedParticipant(null);
+        setPopupPosition(null);
+      }
+    };
+
+    if (selectedParticipant) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [selectedParticipant]);
 
   return (
     <div className="relative h-[calc(100vh-4rem)] bg-card">
@@ -125,6 +142,7 @@ const Index: React.FC = () => {
         {/* Теги */}
         <div className="relative">
           <button
+            ref={setTagsButtonRef}
             onClick={() => {
               setShowTagsDropdown(!showTagsDropdown);
               setShowClusterDropdown(false);
@@ -194,104 +212,136 @@ const Index: React.FC = () => {
         </div>
       </div>
 
-      {/* Модальное окно с информацией об участнике */}
-      {selectedParticipant && (
-        <ParticipantModal
-          participant={selectedParticipant}
-          isOpen={!!selectedParticipant}
-          onClose={() => {
-            setSelectedParticipant(null);
-            setPopupPosition(null);
+      {/* Попап с информацией об участнике */}
+      {selectedParticipant && popupPosition && (
+        <div
+          ref={participantPopupRef}
+          className="fixed z-50 bg-background border rounded-lg shadow-xl p-4 max-w-sm animate-in fade-in-0 zoom-in-95"
+          style={{
+            left: `${popupPosition.x}px`,
+            top: `${popupPosition.y}px`,
+            transform: 'translate(-50%, -100%) translateY(-10px)'
           }}
-        />
+        >
+          {/* Заголовок с кнопкой закрытия */}
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h3 className="font-semibold text-lg">{selectedParticipant.name}</h3>
+              <p className="text-sm text-muted-foreground">{selectedParticipant.role}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSelectedParticipant(null);
+                setPopupPosition(null);
+              }}
+              className="h-6 w-6 -mr-1 -mt-1"
+            >
+              <Icon name="X" size={14} />
+            </Button>
+          </div>
+          
+          {/* Кластер */}
+          <div className="mb-3">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: clusterColors[selectedParticipant.cluster] || '#666' }}
+              />
+              <span className="text-sm">{selectedParticipant.cluster}</span>
+            </div>
+          </div>
+          
+          {/* Описание */}
+          {selectedParticipant.description && (
+            <p className="text-sm text-muted-foreground mb-3">
+              {selectedParticipant.description}
+            </p>
+          )}
+          
+          {/* Теги */}
+          {selectedParticipant.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {selectedParticipant.tags.map(tag => (
+                <Badge key={tag} variant="secondary" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Попап с тегами */}
-      {showTagsDropdown && (
-        <>
-          {/* Затемнение фона */}
-          <div 
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => setShowTagsDropdown(false)}
-          />
+      <Popover
+        isOpen={showTagsDropdown}
+        onClose={() => setShowTagsDropdown(false)}
+        anchorEl={tagsButtonRef}
+        placement="bottom"
+      >
+        <div className="p-4 max-w-md max-h-[60vh] overflow-hidden flex flex-col">
+          {/* Заголовок */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium flex items-center gap-2">
+              <Icon name="Tags" size={16} />
+              Фильтр по тегам
+            </h3>
+            <span className="text-sm text-muted-foreground">
+              {selectedTags.length > 0 && `Выбрано: ${selectedTags.length}`}
+            </span>
+          </div>
           
-          {/* Попап */}
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border rounded-lg shadow-xl p-6 z-50 max-w-2xl max-h-[80vh] overflow-hidden">
-            {/* Заголовок */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Icon name="Tags" size={20} />
-                Выберите теги для фильтрации
-              </h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowTagsDropdown(false)}
-                className="h-8 w-8"
-              >
-                <Icon name="X" size={18} />
-              </Button>
-            </div>
-            
-            {/* Выбранные теги */}
-            {selectedTags.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm text-muted-foreground mb-2">Выбрано: {selectedTags.length}</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedTags.map(tag => (
-                    <Badge
-                      key={tag}
-                      variant="default"
-                      className="cursor-pointer"
-                      onClick={() => toggleTag(tag)}
-                    >
-                      {tag}
-                      <Icon name="X" size={12} className="ml-1" />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Разделитель */}
-            {selectedTags.length > 0 && <div className="border-t mb-4" />}
-            
-            {/* Все теги */}
-            <div className="overflow-y-auto max-h-[50vh]">
-              <div className="flex flex-wrap gap-2">
-                {tags.filter(tag => !selectedTags.includes(tag)).map(tag => (
+          {/* Выбранные теги */}
+          {selectedTags.length > 0 && (
+            <div className="mb-3 pb-3 border-b">
+              <div className="flex flex-wrap gap-1">
+                {selectedTags.map(tag => (
                   <Badge
                     key={tag}
-                    variant="outline"
-                    className="cursor-pointer hover:bg-muted transition-colors"
+                    variant="default"
+                    className="text-xs cursor-pointer"
                     onClick={() => toggleTag(tag)}
                   >
                     {tag}
+                    <Icon name="X" size={10} className="ml-1" />
                   </Badge>
                 ))}
               </div>
             </div>
-            
-            {/* Кнопки действий */}
-            <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+          )}
+          
+          {/* Все теги с прокруткой */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex flex-wrap gap-1">
+              {tags.filter(tag => !selectedTags.includes(tag)).map(tag => (
+                <Badge
+                  key={tag}
+                  variant="outline"
+                  className="text-xs cursor-pointer hover:bg-muted transition-colors"
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          
+          {/* Кнопки действий */}
+          {selectedTags.length > 0 && (
+            <div className="mt-3 pt-3 border-t">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setSelectedTags([]);
-                }}
-                disabled={selectedTags.length === 0}
+                size="sm"
+                onClick={() => setSelectedTags([])}
+                className="w-full"
               >
                 Сбросить все
               </Button>
-              <Button
-                onClick={() => setShowTagsDropdown(false)}
-              >
-                Применить
-              </Button>
             </div>
-          </div>
-        </>
-      )}
+          )}
+        </div>
+      </Popover>
     </div>
   );
 };
