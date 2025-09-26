@@ -145,23 +145,23 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
+    // Clear canvas - используем логические размеры, не физические
     ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
     // Сетка как в Kibana
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
     ctx.lineWidth = 1;
-    for (let x = 0; x < canvas.width; x += 50) {
+    for (let x = 0; x < dimensions.width; x += 50) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
+      ctx.lineTo(x, dimensions.height);
       ctx.stroke();
     }
-    for (let y = 0; y < canvas.height; y += 50) {
+    for (let y = 0; y < dimensions.height; y += 50) {
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
+      ctx.lineTo(dimensions.width, y);
       ctx.stroke();
     }
 
@@ -316,7 +316,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
         });
       }
     });
-  }, [hoveredNode, draggedNode, selectedCluster]);
+  }, [hoveredNode, draggedNode, selectedCluster, dimensions]);
 
   // Обработчики мыши
   const getNodeAtPosition = useCallback((x: number, y: number): SimulationNode | null => {
@@ -426,10 +426,23 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
   // Resize handler
   useEffect(() => {
     const handleResize = () => {
-      if (containerRef.current) {
+      if (containerRef.current && canvasRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         const newWidth = Math.floor(rect.width);
         const newHeight = Math.floor(rect.height);
+        
+        // Получаем devicePixelRatio для HiDPI дисплеев
+        const dpr = window.devicePixelRatio || 1;
+        
+        // Устанавливаем физические размеры canvas с учетом DPR
+        canvasRef.current.width = newWidth * dpr;
+        canvasRef.current.height = newHeight * dpr;
+        
+        // Масштабируем контекст для четкой отрисовки
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) {
+          ctx.scale(dpr, dpr);
+        }
         
         setDimensions({ width: newWidth, height: newHeight });
         
@@ -466,8 +479,6 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
     <div ref={containerRef} className="w-full h-full">
       <canvas
         ref={canvasRef}
-        width={dimensions.width}
-        height={dimensions.height}
         style={{
           width: dimensions.width + 'px',
           height: dimensions.height + 'px',
