@@ -268,23 +268,39 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
         ctx.font = '10px Inter';
         
         topTags.forEach((tag, index) => {
-          const tagY = node.y + nodeSize + 35 + (index * 15);
+          const tagY = node.y + nodeSize + 40 + (index * 25);
           
           // Фон для тега
           const metrics = ctx.measureText(tag);
-          const padding = 6;
-          ctx.fillStyle = 'rgba(234, 88, 12, 0.2)';
+          const padding = 8;
+          const clusterColor = clusterColors[node.data.cluster] || '#ea580c';
+          
+          // Темный фон с хорошей непрозрачностью
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
           ctx.roundRect(
             node.x - metrics.width / 2 - padding, 
-            tagY - 8,
+            tagY - 10,
             metrics.width + padding * 2,
-            16,
-            4
+            20,
+            6
           );
           ctx.fill();
           
-          // Текст тега
-          ctx.fillStyle = '#ea580c';
+          // Обводка цветом кластера
+          ctx.strokeStyle = clusterColor;
+          ctx.lineWidth = 1.5;
+          ctx.roundRect(
+            node.x - metrics.width / 2 - padding, 
+            tagY - 10,
+            metrics.width + padding * 2,
+            20,
+            6
+          );
+          ctx.stroke();
+          
+          // Текст тега белым цветом для контраста
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 11px Inter';
           ctx.fillText(tag, node.x, tagY);
         });
       }
