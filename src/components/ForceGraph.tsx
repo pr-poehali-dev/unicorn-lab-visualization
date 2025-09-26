@@ -30,19 +30,30 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
   const simulationRef = useRef<d3.Simulation<SimulationNode, undefined> | null>(null);
   const nodesRef = useRef<SimulationNode[]>([]);
   const animationFrameRef = useRef<number | null>(null);
-  const nodePositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const nodePositionsRef = useRef<Map<string, { x: number; y: number; fx: number | null; fy: number | null }>>(new Map());
+  const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Инициализация симуляции
   useEffect(() => {
     // Преобразование узлов для симуляции с сохранением позиций
     const simNodes: SimulationNode[] = nodes.map(node => {
       const savedPos = nodePositionsRef.current.get(node.id);
-      return {
+      const newNode: SimulationNode = {
         id: node.id,
         x: savedPos ? savedPos.x : Math.random() * dimensions.width,
         y: savedPos ? savedPos.y : Math.random() * dimensions.height,
         data: node
       };
+      
+      // Восстанавливаем фиксированные позиции если они были
+      if (savedPos?.fx !== null && savedPos?.fx !== undefined) {
+        newNode.fx = savedPos.fx;
+      }
+      if (savedPos?.fy !== null && savedPos?.fy !== undefined) {
+        newNode.fy = savedPos.fy;
+      }
+      
+      return newNode;
     });
     nodesRef.current = simNodes;
 
@@ -74,7 +85,12 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
     simulation.on('tick', () => {
       // Сохраняем текущие позиции узлов
       simNodes.forEach(node => {
-        nodePositionsRef.current.set(node.id, { x: node.x, y: node.y });
+        nodePositionsRef.current.set(node.id, { 
+          x: node.x, 
+          y: node.y,
+          fx: node.fx || null,
+          fy: node.fy || null
+        });
       });
       
       if (animationFrameRef.current) {
@@ -275,6 +291,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
     const node = getNodeAtPosition(x, y);
     if (node) {
       setDraggedNode(node);
+      dragStartPosRef.current = { x, y };
       node.fx = x;
       node.fy = y;
       simulationRef.current?.alpha(0.3).restart();
@@ -301,42 +318,57 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
   }, [draggedNode, getNodeAtPosition]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
-    if (draggedNode) {
-      // Если это был клик, а не драг
+    if (draggedNode && dragStartPosRef.current) {
       const canvas = canvasRef.current;
       if (canvas) {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        const distance = Math.sqrt(Math.pow(draggedNode.x - x, 2) + Math.pow(draggedNode.y - y, 2));
         
+        // Проверяем расстояние от начальной позиции мыши
+        const distance = Math.sqrt(
+          Math.pow(dragStartPosRef.current.x - x, 2) + 
+          Math.pow(dragStartPosRef.current.y - y, 2)
+        );
+        
+        // Если мышь не двигалась (или двигалась мало), это клик
         if (distance < 5) {
           const globalX = rect.left + draggedNode.x;
           const globalY = rect.top + draggedNode.y;
           onNodeClick(draggedNode.data, { x: globalX, y: globalY });
+        } else {
+          // Это было перетаскивание - фиксируем позицию
+          draggedNode.fx = draggedNode.x;
+          draggedNode.fy = draggedNode.y;
+          nodePositionsRef.current.set(draggedNode.id, { 
+            x: draggedNode.x, 
+            y: draggedNode.y,
+            fx: draggedNode.x,
+            fy: draggedNode.y
+          });
         }
       }
 
-      // Сохраняем финальную позицию узла
-      if (draggedNode.fx !== null && draggedNode.fy !== null) {
-        draggedNode.x = draggedNode.fx;
-        draggedNode.y = draggedNode.fy;
-        nodePositionsRef.current.set(draggedNode.id, { x: draggedNode.x, y: draggedNode.y });
-      }
-
-      draggedNode.fx = null;
-      draggedNode.fy = null;
       setDraggedNode(null);
-      simulationRef.current?.alpha(0.1).restart();
+      dragStartPosRef.current = null;
+      simulationRef.current?.alpha(0).restart();
     }
   }, [draggedNode, onNodeClick]);
 
   const handleMouseLeave = useCallback(() => {
     setHoveredNode(null);
     if (draggedNode) {
-      draggedNode.fx = null;
-      draggedNode.fy = null;
+      // При выходе за пределы canvas фиксируем позицию
+      draggedNode.fx = draggedNode.x;
+      draggedNode.fy = draggedNode.y;
+      nodePositionsRef.current.set(draggedNode.id, { 
+        x: draggedNode.x, 
+        y: draggedNode.y,
+        fx: draggedNode.x,
+        fy: draggedNode.y
+      });
       setDraggedNode(null);
+      dragStartPosRef.current = null;
     }
   }, [draggedNode]);
 
