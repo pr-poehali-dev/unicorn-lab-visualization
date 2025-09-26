@@ -22,6 +22,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCluster, setSelectedCluster] = useState('Все');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const forceGraphRef = useRef<any>(null);
 
   // Все уникальные теги
   const allTags = Array.from(new Set(entrepreneurs.flatMap(e => e.tags))).sort();
@@ -130,6 +131,7 @@ const Index = () => {
       {/* Основная область с графом */}
       <div className="flex-1 relative bg-card">
         <ForceGraph
+          ref={forceGraphRef}
           nodes={filteredEntrepreneurs}
           edges={edges}
           onNodeClick={handleNodeClick}
