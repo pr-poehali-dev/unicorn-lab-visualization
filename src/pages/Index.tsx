@@ -15,6 +15,8 @@ const Index: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedParticipant, setSelectedParticipant] = useState<Entrepreneur | null>(null);
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showClusterDropdown, setShowClusterDropdown] = useState(false);
+  const [showTagsDropdown, setShowTagsDropdown] = useState(false);
 
   // Получаем уникальные кластеры и теги
   const clusters = useMemo(() => {
@@ -73,95 +75,101 @@ const Index: React.FC = () => {
         selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
       />
 
-      {/* Плавающие виджеты фильтров */}
-      {/* Поиск */}
-      <div className="absolute top-8 left-8 bg-background/95 backdrop-blur-sm p-4 rounded-lg border shadow-lg">
-        <div className="flex items-center gap-2 mb-3">
+      {/* Компактные виджеты в одну линию */}
+      <div className="absolute top-8 left-8 flex items-center gap-3">
+        {/* Поиск */}
+        <div className="bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border flex items-center gap-2">
           <Icon name="Search" size={16} className="text-muted-foreground" />
-          <span className="text-sm font-medium">Поиск</span>
+          <Input
+            placeholder="Поиск..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-48 h-6 px-2 py-0 border-0 bg-transparent placeholder:text-muted-foreground focus-visible:ring-0"
+          />
         </div>
-        <Input
-          placeholder="Имя или теги..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-64"
-        />
-      </div>
 
-      {/* Фильтр по кластерам */}
-      <div className="absolute top-32 left-8 bg-background/95 backdrop-blur-sm p-4 rounded-lg border shadow-lg">
-        <div className="flex items-center gap-2 mb-3">
-          <Icon name="Layers" size={16} className="text-muted-foreground" />
-          <span className="text-sm font-medium">Кластер</span>
-        </div>
-        <select
-          className="w-64 px-3 py-2 border rounded-md bg-background text-sm"
-          value={selectedCluster}
-          onChange={(e) => setSelectedCluster(e.target.value)}
-        >
-          {clusters.map(cluster => (
-            <option key={cluster} value={cluster}>
-              {cluster}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Фильтр по тегам */}
-      <div className="absolute top-56 left-8 bg-background/95 backdrop-blur-sm p-4 rounded-lg border shadow-lg max-w-xs">
-        <div className="flex items-center gap-2 mb-3">
-          <Icon name="Tags" size={16} className="text-muted-foreground" />
-          <span className="text-sm font-medium">Теги</span>
-          {selectedTags.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {selectedTags.length}
-            </Badge>
+        {/* Кластер */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowClusterDropdown(!showClusterDropdown);
+              setShowTagsDropdown(false);
+            }}
+            className="bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border flex items-center gap-2 hover:bg-background/95 transition-colors"
+          >
+            <Icon name="Layers" size={16} className="text-muted-foreground" />
+            <span className="text-sm">Кластер</span>
+            <Icon name="ChevronDown" size={14} className="text-muted-foreground" />
+          </button>
+          
+          {showClusterDropdown && (
+            <div className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg py-1 min-w-[200px] z-50">
+              {clusters.map(cluster => (
+                <button
+                  key={cluster}
+                  onClick={() => {
+                    setSelectedCluster(cluster);
+                    setShowClusterDropdown(false);
+                  }}
+                  className={`w-full px-3 py-1.5 text-left text-sm hover:bg-muted transition-colors ${
+                    selectedCluster === cluster ? 'bg-muted' : ''
+                  }`}
+                >
+                  {cluster}
+                </button>
+              ))}
+            </div>
           )}
         </div>
+
+        {/* Теги */}
         <div className="relative">
-          <select
-            className="w-full px-3 py-2 border rounded-md bg-background text-sm appearance-none pr-8"
-            onChange={(e) => {
-              if (e.target.value && !selectedTags.includes(e.target.value)) {
-                toggleTag(e.target.value);
-              }
-              e.target.value = '';
+          <button
+            onClick={() => {
+              setShowTagsDropdown(!showTagsDropdown);
+              setShowClusterDropdown(false);
             }}
-            defaultValue=""
+            className="bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border flex items-center gap-2 hover:bg-background/95 transition-colors"
           >
-            <option value="" disabled>Выберите тег...</option>
-            {tags.filter(tag => !selectedTags.includes(tag)).map(tag => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
-          <Icon name="ChevronDown" className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-        </div>
-        {selectedTags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1">
-            {selectedTags.map(tag => (
-              <Badge
-                key={tag}
-                variant="default"
-                className="text-xs cursor-pointer pr-1"
-                onClick={() => toggleTag(tag)}
-              >
-                {tag}
-                <Icon name="X" size={12} className="ml-1" />
+            <Icon name="Tags" size={16} className="text-muted-foreground" />
+            <span className="text-sm">Теги</span>
+            {selectedTags.length > 0 && (
+              <Badge variant="secondary" className="text-xs h-4 px-1">
+                {selectedTags.length}
               </Badge>
-            ))}
-          </div>
-        )}
+            )}
+            <Icon name="ChevronDown" size={14} className="text-muted-foreground" />
+          </button>
+          
+          {showTagsDropdown && (
+            <div className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg p-3 min-w-[300px] max-h-[400px] overflow-y-auto z-50">
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map(tag => (
+                  <Badge
+                    key={tag}
+                    variant={selectedTags.includes(tag) ? "default" : "outline"}
+                    className="text-xs cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => toggleTag(tag)}
+                  >
+                    {tag}
+                    {selectedTags.includes(tag) && (
+                      <Icon name="X" size={10} className="ml-1" />
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Легенда кластеров */}
-      <div className="absolute bottom-8 left-8 bg-background/90 backdrop-blur p-3 rounded-lg border">
-        <div className="flex flex-wrap gap-3">
+      {/* Легенда кластеров - компактная версия */}
+      <div className="absolute bottom-8 left-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
+        <div className="flex items-center gap-3">
           {Object.entries(clusterColors).map(([cluster, color]) => (
-            <div key={cluster} className="flex items-center gap-2">
+            <div key={cluster} className="flex items-center gap-1.5">
               <div 
-                className="w-3 h-3 rounded-full" 
+                className="w-2 h-2 rounded-full" 
                 style={{ backgroundColor: color }}
               />
               <span className="text-xs text-muted-foreground">{cluster}</span>
@@ -180,24 +188,24 @@ const Index: React.FC = () => {
         >
           <Icon name="RotateCcw" size={16} />
         </Button>
-        <div className="bg-background/90 backdrop-blur px-3 h-8 flex items-center rounded-lg border">
+        <div className="bg-background/90 backdrop-blur px-3 h-8 flex items-center rounded-md border">
           <span className="text-sm text-muted-foreground">
             {filteredEntrepreneurs.length} узлов
           </span>
         </div>
       </div>
 
-      {/* Статистика */}
-      <div className="absolute bottom-8 right-8 bg-background/95 backdrop-blur-sm px-4 py-3 rounded-lg border shadow-lg">
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <Icon name="Users" size={16} className="text-muted-foreground" />
+      {/* Статистика - компактная версия */}
+      <div className="absolute bottom-8 right-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
+        <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Icon name="Users" size={14} className="text-muted-foreground" />
             <span className="text-muted-foreground">Всего:</span>
             <span className="font-medium">{entrepreneurs.length}</span>
           </div>
-          <div className="h-4 w-px bg-border" />
-          <div className="flex items-center gap-2">
-            <Icon name="Eye" size={16} className="text-muted-foreground" />
+          <div className="h-3 w-px bg-border" />
+          <div className="flex items-center gap-1.5">
+            <Icon name="Eye" size={14} className="text-muted-foreground" />
             <span className="text-muted-foreground">Показано:</span>
             <span className="font-medium">{filteredEntrepreneurs.length}</span>
           </div>
