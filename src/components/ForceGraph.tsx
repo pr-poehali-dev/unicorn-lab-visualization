@@ -276,15 +276,16 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
           
           // Устанавливаем единый шрифт как у имени
           ctx.font = '12px Inter';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          
           const metrics = ctx.measureText(tag);
           const padding = 8;
           const clusterColor = clusterColors[node.data.cluster] || '#ea580c';
           
-          // Сохраняем текущее состояние
-          ctx.save();
-          
           // Темный фон с хорошей непрозрачностью
-          ctx.fillStyle = 'rgba(26, 26, 26, 0.9)';
+          ctx.fillStyle = 'rgba(26, 26, 26, 0.95)';
+          ctx.beginPath();
           ctx.roundRect(
             node.x - metrics.width / 2 - padding, 
             tagY - 10,
@@ -297,6 +298,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
           // Обводка цветом кластера
           ctx.strokeStyle = clusterColor;
           ctx.lineWidth = 2;
+          ctx.beginPath();
           ctx.roundRect(
             node.x - metrics.width / 2 - padding, 
             tagY - 10,
@@ -306,15 +308,11 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
           );
           ctx.stroke();
           
-          // Текст тега белым цветом для контраста
+          // Текст тега - явно устанавливаем белый цвет
           ctx.fillStyle = '#ffffff';
-          ctx.font = '12px Inter'; // Тот же шрифт, что и у имени
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
+          ctx.strokeStyle = 'transparent';
+          ctx.lineWidth = 0;
           ctx.fillText(tag, node.x, tagY);
-          
-          // Восстанавливаем состояние
-          ctx.restore();
         });
       }
     });
