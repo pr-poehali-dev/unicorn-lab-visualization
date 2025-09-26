@@ -12,13 +12,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ForceGraph from '@/components/ForceGraph';
-import ParticipantModal from '@/components/ParticipantModal';
+import NodePopup from '@/components/NodePopup';
 import { entrepreneurs, edges, clusterColors } from '@/data/mockData';
 import { Entrepreneur } from '@/types/entrepreneur';
 
 const Index = () => {
   const [selectedParticipant, setSelectedParticipant] = useState<Entrepreneur | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCluster, setSelectedCluster] = useState('Все');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -42,9 +42,9 @@ const Index = () => {
     return matchesSearch && matchesTags && matchesCluster;
   });
 
-  const handleNodeClick = useCallback((node: Entrepreneur) => {
+  const handleNodeClick = useCallback((node: Entrepreneur, position: { x: number, y: number }) => {
     setSelectedParticipant(node);
-    setIsModalOpen(true);
+    setPopupPosition(position);
   }, []);
 
   const toggleTag = (tag: string) => {
@@ -163,12 +163,17 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Модальное окно с карточкой участника */}
-      <ParticipantModal
-        participant={selectedParticipant}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
+      {/* Попап с карточкой участника */}
+      {selectedParticipant && popupPosition && (
+        <NodePopup
+          participant={selectedParticipant}
+          position={popupPosition}
+          onClose={() => {
+            setSelectedParticipant(null);
+            setPopupPosition(null);
+          }}
+        />
+      )}
     </div>
   );
 };
