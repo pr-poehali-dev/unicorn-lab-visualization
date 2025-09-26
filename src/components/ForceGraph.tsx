@@ -340,14 +340,14 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
           const globalY = rect.top + draggedNode.y;
           onNodeClick(draggedNode.data, { x: globalX, y: globalY });
         } else {
-          // Это было перетаскивание - освобождаем узел для плавной анимации
-          draggedNode.fx = null;
-          draggedNode.fy = null;
+          // Это было перетаскивание - фиксируем позицию
+          draggedNode.fx = draggedNode.x;
+          draggedNode.fy = draggedNode.y;
           nodePositionsRef.current.set(draggedNode.id, { 
             x: draggedNode.x, 
             y: draggedNode.y,
-            fx: null,
-            fy: null
+            fx: draggedNode.x,
+            fy: draggedNode.y
           });
         }
       }
