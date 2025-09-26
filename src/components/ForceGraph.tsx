@@ -23,6 +23,7 @@ interface SimulationNode extends d3.SimulationNodeDatum {
 
 const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, selectedCluster }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<SimulationNode | null>(null);
@@ -309,28 +310,30 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
   // Resize handler
   useEffect(() => {
     const handleResize = () => {
-      if (canvasRef.current && canvasRef.current.parentElement) {
-        const parent = canvasRef.current.parentElement;
-        const { width, height } = parent.getBoundingClientRect();
-        setDimensions({ width, height });
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const newWidth = Math.floor(rect.width);
+        const newHeight = Math.floor(rect.height);
         
-        // Устанавливаем размеры канваса
-        canvasRef.current.width = width;
-        canvasRef.current.height = height;
-        canvasRef.current.style.width = `${width}px`;
-        canvasRef.current.style.height = `${height}px`;
+        setDimensions({ width: newWidth, height: newHeight });
+        
+        // Перезапускаем симуляцию с новым центром
+        if (simulationRef.current) {
+          simulationRef.current.force('center', d3.forceCenter(newWidth / 2, newHeight / 2));
+          simulationRef.current.alpha(0.1).restart();
+        }
       }
     };
 
-    // Небольшая задержка для корректного получения размеров
-    setTimeout(handleResize, 100);
+    // Начальная установка размеров
+    handleResize();
     
     window.addEventListener('resize', handleResize);
     
-    // Наблюдатель за изменением размеров родителя
+    // Наблюдатель за изменением размеров контейнера
     const resizeObserver = new ResizeObserver(handleResize);
-    if (canvasRef.current?.parentElement) {
-      resizeObserver.observe(canvasRef.current.parentElement);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
     }
     
     return () => {
@@ -344,21 +347,23 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
   }, [drawGraph]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={dimensions.width}
-      height={dimensions.height}
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'block'
-      }}
-      className="cursor-grab active:cursor-grabbing"
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-    />
+    <div ref={containerRef} className="w-full h-full">
+      <canvas
+        ref={canvasRef}
+        width={dimensions.width}
+        height={dimensions.height}
+        style={{
+          width: dimensions.width + 'px',
+          height: dimensions.height + 'px',
+          display: 'block'
+        }}
+        className="cursor-grab active:cursor-grabbing"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      />
+    </div>
   );
 };
 
