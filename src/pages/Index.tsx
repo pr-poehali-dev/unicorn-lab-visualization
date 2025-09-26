@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo } from 'react';
 import ForceGraph from '@/components/ForceGraph';
-import ParticipantPopup from '@/components/ParticipantPopup';
+import ParticipantModal from '@/components/ParticipantModal';
 import { entrepreneurs, edges, clusterColors } from '@/data/mockData';
 import { Entrepreneur } from '@/types/entrepreneur';
 import { Button } from '@/components/ui/button';
@@ -204,11 +204,11 @@ const Index: React.FC = () => {
         </div>
       </div>
 
-      {/* Попап с информацией об участнике */}
-      {selectedParticipant && popupPosition && (
-        <ParticipantPopup
+      {/* Модальное окно с информацией об участнике */}
+      {selectedParticipant && (
+        <ParticipantModal
           participant={selectedParticipant}
-          position={popupPosition}
+          isOpen={!!selectedParticipant}
           onClose={() => {
             setSelectedParticipant(null);
             setPopupPosition(null);
