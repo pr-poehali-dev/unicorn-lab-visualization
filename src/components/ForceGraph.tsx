@@ -125,11 +125,11 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
       if (sourceNode && targetNode) {
         const weight = edge.weight || 0.5;
         
-        // Белый цвет с разной насыщенностью в зависимости от силы связи
-        const opacity = 0.1 + (weight * 0.5); // от 0.1 (слабая) до 0.6 (сильная)
+        // Белый цвет с большей насыщенностью для лучшей видимости
+        const opacity = 0.3 + (weight * 0.4); // от 0.3 (слабая) до 0.7 (сильная)
         
         ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-        ctx.lineWidth = 0.5 + (weight * 2.5); // от 0.5 до 3px
+        ctx.lineWidth = 1 + (weight * 3); // от 1 до 4px
         ctx.beginPath();
         ctx.moveTo(sourceNode.x, sourceNode.y);
         ctx.lineTo(targetNode.x, targetNode.y);
