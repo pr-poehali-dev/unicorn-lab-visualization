@@ -216,7 +216,7 @@ const Index: React.FC = () => {
       {selectedParticipant && popupPosition && (
         <div
           ref={participantPopupRef}
-          className="fixed z-50 bg-background border rounded-lg shadow-xl p-4 max-w-sm animate-in fade-in-0 duration-200"
+          className="fixed z-50 bg-background border rounded-lg shadow-xl p-4 max-w-sm popup-fade-in"
           style={{
             left: `${popupPosition.x}px`,
             top: `${popupPosition.y}px`,
