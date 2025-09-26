@@ -30,16 +30,20 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
   const simulationRef = useRef<d3.Simulation<SimulationNode, undefined> | null>(null);
   const nodesRef = useRef<SimulationNode[]>([]);
   const animationFrameRef = useRef<number | null>(null);
+  const nodePositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
 
   // Инициализация симуляции
   useEffect(() => {
-    // Преобразование узлов для симуляции
-    const simNodes: SimulationNode[] = nodes.map(node => ({
-      id: node.id,
-      x: Math.random() * dimensions.width,
-      y: Math.random() * dimensions.height,
-      data: node
-    }));
+    // Преобразование узлов для симуляции с сохранением позиций
+    const simNodes: SimulationNode[] = nodes.map(node => {
+      const savedPos = nodePositionsRef.current.get(node.id);
+      return {
+        id: node.id,
+        x: savedPos ? savedPos.x : Math.random() * dimensions.width,
+        y: savedPos ? savedPos.y : Math.random() * dimensions.height,
+        data: node
+      };
+    });
     nodesRef.current = simNodes;
 
     // Создаем копию edges для симуляции
@@ -61,13 +65,18 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
         .radius(60)
         .strength(0.7)
       )
-      .velocityDecay(0.8)
-      .alphaTarget(0.02);
+      .velocityDecay(0.6)
+      .alphaTarget(0);
 
     simulationRef.current = simulation;
 
     // Обновление позиций при каждом тике
     simulation.on('tick', () => {
+      // Сохраняем текущие позиции узлов
+      simNodes.forEach(node => {
+        nodePositionsRef.current.set(node.id, { x: node.x, y: node.y });
+      });
+      
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -306,6 +315,13 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
           const globalY = rect.top + draggedNode.y;
           onNodeClick(draggedNode.data, { x: globalX, y: globalY });
         }
+      }
+
+      // Сохраняем финальную позицию узла
+      if (draggedNode.fx !== null && draggedNode.fy !== null) {
+        draggedNode.x = draggedNode.fx;
+        draggedNode.y = draggedNode.fy;
+        nodePositionsRef.current.set(draggedNode.id, { x: draggedNode.x, y: draggedNode.y });
       }
 
       draggedNode.fx = null;
