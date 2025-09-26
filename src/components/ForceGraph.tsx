@@ -114,7 +114,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
 
     const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
 
-    // Рисование связей с оранжевым цветом разной насыщенности
+    // Рисование связей белыми линиями с разной насыщенностью
     edges.forEach(edge => {
       if (!visibleNodeIds.has(edge.source as string) || !visibleNodeIds.has(edge.target as string)) return;
 
@@ -124,11 +124,11 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
       if (sourceNode && targetNode) {
         const weight = edge.weight || 0.5;
         
-        // Оранжевый цвет с разной насыщенностью в зависимости от силы связи
-        const opacity = 0.2 + (weight * 0.6); // от 0.2 (слабая) до 0.8 (сильная)
+        // Белый цвет с разной насыщенностью в зависимости от силы связи
+        const opacity = 0.1 + (weight * 0.5); // от 0.1 (слабая) до 0.6 (сильная)
         
-        ctx.strokeStyle = `rgba(234, 88, 12, ${opacity})`; // Оранжевый #ea580c
-        ctx.lineWidth = 1 + (weight * 3); // от 1 до 4px
+        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+        ctx.lineWidth = 0.5 + (weight * 2.5); // от 0.5 до 3px
         ctx.beginPath();
         ctx.moveTo(sourceNode.x, sourceNode.y);
         ctx.lineTo(targetNode.x, targetNode.y);
