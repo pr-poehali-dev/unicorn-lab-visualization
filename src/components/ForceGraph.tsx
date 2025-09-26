@@ -133,6 +133,11 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
     };
   }, [nodes, edges, dimensions]);
 
+  // Перерисовка при изменении hoveredNode
+  useEffect(() => {
+    drawGraph();
+  }, [hoveredNode]);
+
   const drawGraph = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
