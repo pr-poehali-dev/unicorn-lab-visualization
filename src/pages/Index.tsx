@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import TelegramParser from '@/components/TelegramParser';
 
 const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
@@ -19,6 +20,7 @@ const Index: React.FC = () => {
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
   const [tagsButtonRef, setTagsButtonRef] = useState<HTMLButtonElement | null>(null);
   const participantPopupRef = useRef<HTMLDivElement>(null);
+  const [showParser, setShowParser] = useState(false);
 
   // Получаем уникальные кластеры и теги
   const clusters = useMemo(() => {
@@ -342,6 +344,26 @@ const Index: React.FC = () => {
           )}
         </div>
       </Popover>
+
+      {/* Кнопка для показа парсера */}
+      <div className="fixed bottom-4 right-4 z-20">
+        <Button
+          onClick={() => setShowParser(!showParser)}
+          variant="outline"
+          size="sm"
+          className="shadow-lg"
+        >
+          <Icon name="Terminal" size={16} className="mr-2" />
+          {showParser ? 'Скрыть' : 'Показать'} парсер
+        </Button>
+      </div>
+
+      {/* Компонент парсера */}
+      {showParser && (
+        <div className="fixed bottom-16 right-4 z-20 w-[500px] max-h-[600px] overflow-y-auto shadow-2xl">
+          <TelegramParser />
+        </div>
+      )}
     </div>
   );
 };
