@@ -76,9 +76,8 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
         .radius(60)
         .strength(0.7)
       )
-      .velocityDecay(0.4) // Уменьшаем затухание скорости для более плавной анимации
-      .alphaTarget(0)
-      .alphaDecay(0.02); // Медленное затухание энергии симуляции
+      .velocityDecay(0.6)
+      .alphaTarget(0);
 
     simulationRef.current = simulation;
 
@@ -295,8 +294,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
       dragStartPosRef.current = { x, y };
       node.fx = x;
       node.fy = y;
-      // Увеличиваем энергию симуляции при перетаскивании
-      simulationRef.current?.alpha(0.5).restart();
+      simulationRef.current?.alpha(0.3).restart();
     }
   }, [getNodeAtPosition]);
 
@@ -311,8 +309,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
     if (draggedNode) {
       draggedNode.fx = x;
       draggedNode.fy = y;
-      // Увеличиваем энергию симуляции при перетаскивании
-      simulationRef.current?.alpha(0.5).restart();
+      simulationRef.current?.alpha(0.3).restart();
     } else {
       const node = getNodeAtPosition(x, y);
       setHoveredNode(node?.id || null);
@@ -354,8 +351,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
 
       setDraggedNode(null);
       dragStartPosRef.current = null;
-      // Плавно уменьшаем энергию симуляции вместо резкой остановки
-      simulationRef.current?.alphaTarget(0).restart();
+      simulationRef.current?.alpha(0).restart();
     }
   }, [draggedNode, onNodeClick]);
 
