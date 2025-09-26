@@ -36,15 +36,18 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
     // Преобразование узлов для симуляции
     const simNodes: SimulationNode[] = nodes.map(node => ({
       id: node.id,
-      x: node.position.x + dimensions.width / 2 - 400,
-      y: node.position.y + dimensions.height / 2 - 300,
+      x: Math.random() * dimensions.width,
+      y: Math.random() * dimensions.height,
       data: node
     }));
     nodesRef.current = simNodes;
 
+    // Создаем копию edges для симуляции
+    const simEdges = edges.map(e => ({ ...e }));
+
     // Создание симуляции
     const simulation = d3.forceSimulation(simNodes)
-      .force('link', d3.forceLink(edges)
+      .force('link', d3.forceLink(simEdges)
         .id((d: any) => d.id)
         .distance(150)
         .strength(0.5)
@@ -115,27 +118,41 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ nodes, edges, onNodeClick, sele
 
     const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
 
-    // Рисование связей белыми линиями с разной насыщенностью
-    edges.forEach(edge => {
-      if (!visibleNodeIds.has(edge.source as string) || !visibleNodeIds.has(edge.target as string)) return;
-
-      const sourceNode = simNodes.find(n => n.id === (typeof edge.source === 'string' ? edge.source : (edge.source as any).id));
-      const targetNode = simNodes.find(n => n.id === (typeof edge.target === 'string' ? edge.target : (edge.target as any).id));
-
-      if (sourceNode && targetNode) {
-        const weight = edge.weight || 0.5;
+    // Получаем связи из симуляции
+    const links = simulationRef.current?.force('link');
+    if (links) {
+      const simLinks = (links as any).links();
+      
+      // Рисование связей
+      simLinks.forEach((link: any) => {
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
         
-        // Белый цвет с большей насыщенностью для лучшей видимости
-        const opacity = 0.3 + (weight * 0.4); // от 0.3 (слабая) до 0.7 (сильная)
+        if (!visibleNodeIds.has(sourceId) || !visibleNodeIds.has(targetId)) return;
         
-        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-        ctx.lineWidth = 1 + (weight * 3); // от 1 до 4px
-        ctx.beginPath();
-        ctx.moveTo(sourceNode.x, sourceNode.y);
-        ctx.lineTo(targetNode.x, targetNode.y);
-        ctx.stroke();
-      }
-    });
+        const sourceNode = typeof link.source === 'object' ? link.source : simNodes.find(n => n.id === sourceId);
+        const targetNode = typeof link.target === 'object' ? link.target : simNodes.find(n => n.id === targetId);
+        
+        if (sourceNode && targetNode) {
+          // Находим оригинальный edge для получения веса
+          const originalEdge = edges.find(e => 
+            (e.source === sourceId && e.target === targetId) ||
+            (e.source === targetId && e.target === sourceId)
+          );
+          const weight = originalEdge?.weight || 0.5;
+          
+          // Белый цвет с большей насыщенностью для лучшей видимости
+          const opacity = 0.4 + (weight * 0.4); // от 0.4 (слабая) до 0.8 (сильная)
+          
+          ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+          ctx.lineWidth = 1.5 + (weight * 3); // от 1.5 до 4.5px
+          ctx.beginPath();
+          ctx.moveTo(sourceNode.x, sourceNode.y);
+          ctx.lineTo(targetNode.x, targetNode.y);
+          ctx.stroke();
+        }
+      });
+    }
 
     // Рисование узлов
     visibleNodes.forEach(node => {
