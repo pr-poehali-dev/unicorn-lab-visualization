@@ -274,8 +274,8 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
         topTags.forEach((tag, index) => {
           const tagY = node.y + nodeSize + 40 + (index * 25);
           
-          // Устанавливаем шрифт для правильного измерения
-          ctx.font = 'bold 11px Inter';
+          // Устанавливаем единый шрифт как у имени
+          ctx.font = '12px Inter';
           const metrics = ctx.measureText(tag);
           const padding = 8;
           const clusterColor = clusterColors[node.data.cluster] || '#ea580c';
@@ -308,6 +308,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
           
           // Текст тега белым цветом для контраста
           ctx.fillStyle = '#ffffff';
+          ctx.font = '12px Inter'; // Тот же шрифт, что и у имени
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(tag, node.x, tagY);
