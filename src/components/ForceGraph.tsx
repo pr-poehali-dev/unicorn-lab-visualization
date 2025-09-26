@@ -207,7 +207,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
     visibleNodes.forEach(node => {
       const isHovered = node.id === hoveredNode;
       const isDragged = draggedNode?.id === node.id;
-      const nodeSize = isDragged ? 50 : (isHovered ? 45 : 40);
+      const nodeSize = 40; // Фиксированный размер без увеличения
 
       // Свечение для активного узла
       if (isHovered || isDragged) {
@@ -257,7 +257,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNod
       ctx.fillText(node.data.avatar, node.x, node.y + 2);
 
       // Имя участника
-      ctx.fillStyle = '#f5f5f5';
+      ctx.fillStyle = '#ffffff';
       ctx.font = isHovered || isDragged ? 'bold 14px Inter' : '12px Inter';
       ctx.textAlign = 'center';
       ctx.fillText(node.data.name, node.x, node.y + nodeSize + 20);
