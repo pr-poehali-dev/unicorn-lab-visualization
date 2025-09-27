@@ -17,23 +17,27 @@ def get_tags_and_clusters_from_db() -> Tuple[List[str], List[str]]:
         current_schema = cur.fetchone()[0]
         print(f"Current schema: {current_schema}")
         
-        # Get tags with full schema path
+        # Get all non-cluster tags
         cur.execute("""
-            SELECT name FROM t_p95295728_unicorn_lab_visualiz.tags 
-            WHERE category != 'cluster' OR category IS NULL
-            ORDER BY name
+            SELECT t.name 
+            FROM t_p95295728_unicorn_lab_visualiz.tags t
+            LEFT JOIN t_p95295728_unicorn_lab_visualiz.tag_categories tc ON t.category_id = tc.id
+            WHERE tc.name != 'cluster' OR tc.name IS NULL
+            ORDER BY t.name
         """)
         tags = [row[0] for row in cur.fetchall()]
         
-        # Get clusters
+        # Get cluster tags
         cur.execute("""
-            SELECT name FROM t_p95295728_unicorn_lab_visualiz.tags 
-            WHERE category = 'cluster' 
-            ORDER BY name
+            SELECT t.name 
+            FROM t_p95295728_unicorn_lab_visualiz.tags t
+            JOIN t_p95295728_unicorn_lab_visualiz.tag_categories tc ON t.category_id = tc.id
+            WHERE tc.name = 'cluster'
+            ORDER BY t.name
         """)
         clusters = [row[0] for row in cur.fetchall()]
         
-        print(f"Loaded {len(tags)} tags and {len(clusters)} clusters")
+        print(f"Loaded {len(tags)} tags and {len(clusters)} clusters from DB")
         
         # If no clusters found, use default ones
         if not clusters:
@@ -206,17 +210,21 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
                             'content': f'''You are analyzing Russian text about entrepreneurs and business professionals.
 
 TASK:
-1. Extract participant information
-2. Assign ONE cluster: {', '.join(clusters)}
-3. Create a concise 1-2 sentence summary in Russian highlighting their expertise, role, and achievements
-4. Extract their main GOAL - what they want to achieve, find, or get from the community (1 sentence in Russian)
-5. Select 3-10 tags from this list ONLY: {', '.join(allowed_tags)}
+1. Extract participant information in Russian
+2. Assign ONE cluster from this list: {', '.join(clusters)}
+3. Create a 1-2 sentence summary in Russian highlighting their expertise and achievements
+4. Extract their main GOAL - what they want to achieve or find (1 sentence in Russian)
+5. Select 3-10 tags from the provided list that best describe the person
+
+AVAILABLE TAGS (use EXACTLY as written, including Russian):
+{', '.join(allowed_tags)}
 
 IMPORTANT:
-- Summary must be a complete, professional description, not just cut text
-- Use ONLY tags from the provided list
-- Minimum 3 tags, maximum 10 tags per person
-- Focus on their professional activities and expertise'''
+- Use ONLY tags from the provided list above, exactly as written
+- Tags are in Russian, match them carefully
+- Select 3-10 most relevant tags per person
+- If no perfect match, choose the closest relevant tags
+- Focus on their skills, industry, business stage, needs'''
                         },
                         {
                             'role': 'user',
