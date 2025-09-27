@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import TelegramParser from '@/components/TelegramParser';
 import { ApiService } from '@/services/api';
+import { ENTREPRENEUR_TAGS, ALL_TAGS } from '@/data/tags';
 
 const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
@@ -28,14 +29,33 @@ const Index: React.FC = () => {
 
   // Получаем уникальные кластеры и теги
   const clusters = useMemo(() => {
-    const uniqueClusters = Array.from(new Set(entrepreneurs.map(e => e.cluster))).sort();
-    return ['Все', ...uniqueClusters];
-  }, []);
+    // Предопределенные кластеры
+    const predefinedClusters = ['IT', 'Маркетинг', 'Финансы', 'Производство', 'Услуги', 'Консалтинг', 'E-commerce', 'EdTech', 'HealthTech'];
+    const uniqueClusters = Array.from(new Set(entrepreneurs.map(e => e.cluster)));
+    // Объединяем предопределенные и реальные кластеры
+    const allClusters = Array.from(new Set([...predefinedClusters, ...uniqueClusters]))
+      .filter(c => c) // Убираем пустые
+      .sort();
+    return ['Все', ...allClusters];
+  }, [entrepreneurs]);
 
   const tags = useMemo(() => {
-    const allTags = entrepreneurs.flatMap(e => e.tags);
-    return Array.from(new Set(allTags)).sort();
-  }, []);
+    // Используем теги из загруженных данных
+    const usedTags = entrepreneurs.flatMap(e => e.tags);
+    const uniqueUsedTags = Array.from(new Set(usedTags));
+    
+    // Группируем теги по категориям для удобного отображения
+    const categorizedTags = {
+      'Отрасли': ENTREPRENEUR_TAGS.industry.filter(tag => uniqueUsedTags.includes(tag)),
+      'Навыки': ENTREPRENEUR_TAGS.skills.filter(tag => uniqueUsedTags.includes(tag)),
+      'Стадия': ENTREPRENEUR_TAGS.stage.filter(tag => uniqueUsedTags.includes(tag)),
+      'Ищут': ENTREPRENEUR_TAGS.needs.filter(tag => uniqueUsedTags.includes(tag)),
+      'Предлагают': ENTREPRENEUR_TAGS.offers.filter(tag => uniqueUsedTags.includes(tag)),
+      'Модель': ENTREPRENEUR_TAGS.model.filter(tag => uniqueUsedTags.includes(tag))
+    };
+    
+    return categorizedTags;
+  }, [entrepreneurs]);
 
   // Фильтрация предпринимателей
   const filteredEntrepreneurs = useMemo(() => {
@@ -91,6 +111,11 @@ const Index: React.FC = () => {
         : [...prev, tag]
     );
   };
+
+  // Подсчитываем общее количество уникальных тегов
+  const totalTagsCount = useMemo(() => {
+    return Object.values(tags).reduce((sum, categoryTags) => sum + categoryTags.length, 0);
+  }, [tags]);
 
   // Закрытие попапа участника при клике вне
   React.useEffect(() => {
@@ -252,6 +277,12 @@ const Index: React.FC = () => {
             <span className="text-muted-foreground">Показано:</span>
             <span className="font-medium">{loading ? '...' : filteredEntrepreneurs.length}</span>
           </div>
+          <div className="h-3 w-px bg-border" />
+          <div className="flex items-center gap-1.5">
+            <Icon name="Tags" size={14} className="text-muted-foreground" />
+            <span className="text-muted-foreground">Тегов:</span>
+            <span className="font-medium">{loading ? '...' : totalTagsCount}</span>
+          </div>
         </div>
       </div>
 
@@ -376,20 +407,30 @@ const Index: React.FC = () => {
             </div>
           )}
           
-          {/* Все теги с прокруткой */}
+          {/* Все теги с прокруткой, сгруппированные по категориям */}
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="flex flex-wrap gap-1">
-              {tags.filter(tag => !selectedTags.includes(tag)).map(tag => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="text-xs cursor-pointer hover:bg-muted transition-colors"
-                  onClick={() => toggleTag(tag)}
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
+            {Object.entries(tags).map(([category, categoryTags]) => {
+              if (categoryTags.length === 0) return null;
+              return (
+                <div key={category} className="mb-4">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-2">{category}</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {categoryTags
+                      .filter(tag => !selectedTags.includes(tag))
+                      .map(tag => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          className="text-xs cursor-pointer hover:bg-muted transition-colors"
+                          onClick={() => toggleTag(tag)}
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
           
           {/* Кнопки действий */}
