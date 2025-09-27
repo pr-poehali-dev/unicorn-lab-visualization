@@ -48,21 +48,9 @@ const Index: React.FC = () => {
   const filteredEntrepreneurs = useMemo(() => {
     return entrepreneurs.filter(entrepreneur => {
       // Фильтр по поиску
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const searchableText = [
-          entrepreneur.name,
-          entrepreneur.description,
-          entrepreneur.goal || '',
-          entrepreneur.role || '',
-          entrepreneur.cluster,
-          ...entrepreneur.tags
-        ].join(' ').toLowerCase();
-        
-        // Проверяем вхождение поискового запроса в любое из полей
-        if (!searchableText.includes(query)) {
-          return false;
-        }
+      if (searchQuery && !entrepreneur.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+          !entrepreneur.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))) {
+        return false;
       }
 
       // Фильтр по кластеру
