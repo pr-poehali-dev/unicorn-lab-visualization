@@ -125,6 +125,9 @@ export function useSimulation({
 
     simulationRef.current = simulation;
 
+    let lastDrawTime = 0;
+    const MIN_DRAW_INTERVAL = 16; // ~60 FPS
+
     // Обновление позиций при каждом тике
     simulation.on('tick', () => {
       // Сохраняем текущие позиции узлов
@@ -136,6 +139,13 @@ export function useSimulation({
           fy: node.fy || null
         });
       });
+      
+      // Ограничиваем частоту перерисовки
+      const now = performance.now();
+      if (now - lastDrawTime < MIN_DRAW_INTERVAL) {
+        return; // Пропускаем этот кадр
+      }
+      lastDrawTime = now;
       
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);

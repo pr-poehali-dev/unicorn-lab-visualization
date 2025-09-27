@@ -136,9 +136,12 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       draggedNode.fy = y;
       simulationRef.current?.alpha(0.3).restart();
     } else {
-      updateHoverState();
+      // Немедленно обновляем hover состояние
       const node = getNodeAtPosition(x, y);
-      canvas.style.cursor = node ? 'pointer' : 'grab';
+      const nodeId = node?.id || null;
+      if (nodeId !== hoveredNodeId) {
+        setHoveredNodeId(nodeId);
+      }
     }
   }, [draggedNode, getNodeAtPosition, updateHoverState]);
 
@@ -201,15 +204,24 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     isMouseInsideRef.current = true;
   }, []);
 
-  // Интервал для проверки hover состояния
+  // Используем requestAnimationFrame для более плавной проверки hover
   useEffect(() => {
-    const interval = setInterval(() => {
+    let rafId: number;
+    
+    const checkHover = () => {
       if (isMouseInsideRef.current && !draggedNode) {
         updateHoverState();
       }
-    }, 50); // Проверяем каждые 50мс
-
-    return () => clearInterval(interval);
+      rafId = requestAnimationFrame(checkHover);
+    };
+    
+    rafId = requestAnimationFrame(checkHover);
+    
+    return () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, [updateHoverState, draggedNode]);
 
   // Метод для сброса всех фиксированных позиций
@@ -234,20 +246,36 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   }), [resetNodePositions]);
 
   return (
-    <div ref={containerRef} className="w-full h-full">
+    <div ref={containerRef} className="w-full h-full relative">
       <canvas
         ref={canvasRef}
         style={{
           width: dimensions.width + 'px',
           height: dimensions.height + 'px',
-          display: 'block'
+          display: 'block',
+          position: 'absolute',
+          top: 0,
+          left: 0
         }}
-        className="cursor-grab active:cursor-grabbing"
+        className="pointer-events-none"
+      />
+      <div
+        style={{
+          width: dimensions.width + 'px',
+          height: dimensions.height + 'px',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          cursor: hoveredNodeId ? 'pointer' : 'grab'
+        }}
+        className="active:cursor-grabbing"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         onMouseEnter={handleMouseEnter}
+        onPointerMove={handleMouseMove}
+        onPointerLeave={handleMouseLeave}
       />
     </div>
   );
