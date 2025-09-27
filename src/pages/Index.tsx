@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import TelegramParser from '@/components/TelegramParser';
 import { ApiService } from '@/services/api';
+import { ENTREPRENEUR_CLUSTERS, ENTREPRENEUR_TAGS } from '@/data/entrepreneurTags';
 
 const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
@@ -26,16 +27,23 @@ const Index: React.FC = () => {
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Получаем уникальные кластеры и теги
-  const clusters = useMemo(() => {
-    const uniqueClusters = Array.from(new Set(entrepreneurs.map(e => e.cluster))).sort();
-    return ['Все', ...uniqueClusters];
+  // Используем предопределенные кластеры из системы тегов
+  const clusters = ['Все', ...ENTREPRENEUR_CLUSTERS];
+
+  // Все доступные теги из системы
+  const allAvailableTags = useMemo(() => {
+    return Object.values(ENTREPRENEUR_TAGS).flat().sort();
   }, []);
 
-  const tags = useMemo(() => {
-    const allTags = entrepreneurs.flatMap(e => e.tags);
-    return Array.from(new Set(allTags)).sort();
-  }, []);
+  // Категории тегов для группировки в UI
+  const tagCategories = [
+    { key: 'industry', label: 'Отрасли', tags: ENTREPRENEUR_TAGS.industry },
+    { key: 'skills', label: 'Навыки', tags: ENTREPRENEUR_TAGS.skills },
+    { key: 'stage', label: 'Стадия', tags: ENTREPRENEUR_TAGS.stage },
+    { key: 'needs', label: 'Что ищут', tags: ENTREPRENEUR_TAGS.needs },
+    { key: 'offers', label: 'Предлагают', tags: ENTREPRENEUR_TAGS.offers },
+    { key: 'model', label: 'Модель', tags: ENTREPRENEUR_TAGS.model }
+  ];
 
   // Фильтрация предпринимателей
   const filteredEntrepreneurs = useMemo(() => {
@@ -345,7 +353,7 @@ const Index: React.FC = () => {
         anchorEl={tagsButtonRef}
         placement="bottom"
       >
-        <div className="p-4 max-w-md max-h-[60vh] overflow-hidden flex flex-col">
+        <div className="p-4 max-w-lg max-h-[70vh] overflow-hidden flex flex-col">
           {/* Заголовок */}
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-medium flex items-center gap-2">
@@ -360,6 +368,17 @@ const Index: React.FC = () => {
           {/* Выбранные теги */}
           {selectedTags.length > 0 && (
             <div className="mb-3 pb-3 border-b">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground">Выбранные теги:</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedTags([])}
+                  className="h-6 text-xs"
+                >
+                  Очистить все
+                </Button>
+              </div>
               <div className="flex flex-wrap gap-1">
                 {selectedTags.map(tag => (
                   <Badge
@@ -376,35 +395,28 @@ const Index: React.FC = () => {
             </div>
           )}
           
-          {/* Все теги с прокруткой */}
-          <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="flex flex-wrap gap-1">
-              {tags.filter(tag => !selectedTags.includes(tag)).map(tag => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="text-xs cursor-pointer hover:bg-muted transition-colors"
-                  onClick={() => toggleTag(tag)}
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
+          {/* Теги по категориям */}
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4">
+            {tagCategories.map(category => (
+              <div key={category.key} className="space-y-2">
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {category.label}
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {category.tags.map(tag => (
+                    <Badge
+                      key={tag}
+                      variant={selectedTags.includes(tag) ? "default" : "outline"}
+                      className="text-xs cursor-pointer hover:bg-muted transition-colors"
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-          
-          {/* Кнопки действий */}
-          {selectedTags.length > 0 && (
-            <div className="mt-3 pt-3 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedTags([])}
-                className="w-full"
-              >
-                Сбросить все
-              </Button>
-            </div>
-          )}
         </div>
       </Popover>
 

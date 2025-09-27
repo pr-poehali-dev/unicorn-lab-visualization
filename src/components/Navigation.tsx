@@ -14,9 +14,7 @@ const Navigation = () => {
           </Link>
           
           <div className="flex items-center gap-4">
-            <Button variant="ghost" asChild>
-              <Link to="/tags-demo">Система тегов</Link>
-            </Button>
+            {/* Навигация */}
           </div>
         </div>
       </div>
