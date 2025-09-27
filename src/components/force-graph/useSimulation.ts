@@ -20,6 +20,7 @@ export function useSimulation({
 }: UseSimulationProps) {
   const simulationRef = useRef<d3.Simulation<SimulationNode, undefined> | null>(null);
   const nodesRef = useRef<SimulationNode[]>([]);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Инициализация симуляции
   useEffect(() => {
@@ -81,11 +82,19 @@ export function useSimulation({
         });
       });
       
-      onTick();
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      animationFrameRef.current = requestAnimationFrame(() => {
+        onTick();
+      });
     });
 
     return () => {
       simulation.stop();
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, [nodes, edges, dimensions, nodePositionsRef, onTick]);
 

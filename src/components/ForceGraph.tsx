@@ -50,15 +50,17 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   }, [selectedCluster, dimensions, edges, clusterColors, hoveredNode, draggedNode]);
 
   // Хук для управления симуляцией
-  useSimulation({
+  const simulation = useSimulation({
     nodes,
     edges,
     dimensions,
-    nodesRef,
     nodePositionsRef,
-    animationFrameRef,
-    drawGraph
+    onTick: drawGraph
   });
+
+  // Обновляем ссылки из результата хука
+  simulationRef.current = simulation.simulationRef.current;
+  nodesRef.current = simulation.nodesRef.current;
 
   // Хук для управления взаимодействием с узлами
   const interactions = useNodeInteractions({
