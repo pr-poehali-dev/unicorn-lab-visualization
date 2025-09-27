@@ -183,6 +183,15 @@ const Index: React.FC = () => {
       {/* Счетчик узлов и кнопка сброса */}
       <div className="absolute top-8 right-8 flex items-center gap-2">
         <Button
+          onClick={() => setShowParser(!showParser)}
+          variant="outline"
+          size="icon"
+          className="bg-background/90 backdrop-blur h-8 w-8"
+          title={showParser ? 'Скрыть парсер' : 'Показать парсер'}
+        >
+          <Icon name="Upload" size={16} />
+        </Button>
+        <Button
           onClick={() => forceGraphRef.current?.resetNodePositions()}
           variant="outline"
           size="icon"
@@ -345,22 +354,9 @@ const Index: React.FC = () => {
         </div>
       </Popover>
 
-      {/* Кнопка для показа парсера */}
-      <div className="fixed bottom-4 right-4 z-20">
-        <Button
-          onClick={() => setShowParser(!showParser)}
-          variant="outline"
-          size="sm"
-          className="shadow-lg"
-        >
-          <Icon name="Terminal" size={16} className="mr-2" />
-          {showParser ? 'Скрыть' : 'Показать'} парсер
-        </Button>
-      </div>
-
       {/* Компонент парсера */}
       {showParser && (
-        <div className="fixed bottom-16 right-4 z-20 w-[500px] max-h-[600px] overflow-y-auto shadow-2xl">
+        <div className="fixed bottom-4 right-4 z-20 w-[500px] max-h-[600px] overflow-y-auto shadow-2xl">
           <TelegramParser />
         </div>
       )}
