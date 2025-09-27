@@ -202,15 +202,24 @@ const Index: React.FC = () => {
           </div>
         </div>
       ) : (
-        <ForceGraph
-          key={`${selectedCluster}-${selectedTags.join(',')}`}
-          ref={forceGraphRef}
-          nodes={filteredEntrepreneurs}
-          edges={filteredEdges}
-          onNodeClick={handleNodeClick}
-          selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
-          clusterColors={tagsConfig?.clusterColors || {}}
-        />
+        <div className="relative w-full h-full">
+          <div 
+            className="absolute inset-0 transition-opacity duration-300"
+            style={{
+              animation: 'fadeIn 300ms ease-in-out'
+            }}
+          >
+            <ForceGraph
+              key={`${selectedCluster}-${selectedTags.join(',')}`}
+              ref={forceGraphRef}
+              nodes={filteredEntrepreneurs}
+              edges={filteredEdges}
+              onNodeClick={handleNodeClick}
+              selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
+              clusterColors={tagsConfig?.clusterColors || {}}
+            />
+          </div>
+        </div>
       )}
 
       {/* Компактные виджеты в одну линию */}
