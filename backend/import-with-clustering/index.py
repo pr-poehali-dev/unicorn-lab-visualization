@@ -219,18 +219,22 @@ TASK:
 6. Select 3-10 tags from the provided list that best describe the person
 
 EMOJI SELECTION:
-- Choose ONE single emoji that best represents the person
-- For IT/tech people: 💻, 🚀, ⚡, 🔧, 📱
-- For business/finance: 💼, 💰, 📈, 🏢, 💎
-- For creative: 🎨, 🎭, 🎬, 📸, 🎵
-- For education: 📚, 🎓, 👨‍🏫, 🧠
-- For healthcare: 🏥, 💊, 🩺, ❤️
-- For marketing: 📢, 🎯, 📊, 🔥
-- For food/restaurant: 🍕, 🍔, 🥘, 👨‍🍳
-- For sports/fitness: 💪, 🏃, ⚽, 🏋️
-- For travel: ✈️, 🌍, 🏝️
-- For eco/green: 🌱, ♻️, 🌿
-- Default if unsure: 😊, 🌟, 💫
+- Choose ONE single HUMAN emoji that represents the person
+- Use ONLY people/face emojis, NO objects or symbols
+- Available options:
+  * Professional/Business: 👨‍💼, 👩‍💼, 🧑‍💼
+  * Tech/IT: 👨‍💻, 👩‍💻, 🧑‍💻
+  * Creative: 👨‍🎨, 👩‍🎨, 🧑‍🎨
+  * Science: 👨‍🔬, 👩‍🔬, 🧑‍🔬
+  * Education: 👨‍🏫, 👩‍🏫, 🧑‍🏫, 👨‍🎓, 👩‍🎓
+  * Healthcare: 👨‍⚕️, 👩‍⚕️, 🧑‍⚕️
+  * Chef/Food: 👨‍🍳, 👩‍🍳, 🧑‍🍳
+  * Worker: 👷‍♂️, 👷‍♀️, 🧑‍🏭
+  * Friendly faces: 😊, 🙂, 😄, 😃, 🤗
+  * Cool/Confident: 😎, 😏, 🤓
+  * Default if unsure: 😊
+- Choose based on their description and personality
+- Prefer profession-specific emojis when clear from context
 
 AVAILABLE TAGS (use EXACTLY as written, including Russian):
 {', '.join(allowed_tags)}
