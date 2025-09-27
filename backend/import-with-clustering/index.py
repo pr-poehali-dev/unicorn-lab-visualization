@@ -37,6 +37,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         body_data = json.loads(event.get('body', '{}'))
         raw_participants = body_data.get('participants', [])
         
+        # Log incoming data
+        print(f"Received {len(raw_participants)} participants")
+        if raw_participants:
+            print(f"First participant sample: {raw_participants[0]}")
+        
         if not raw_participants:
             return {
                 'statusCode': 400,
@@ -108,6 +113,12 @@ def cluster_participants(raw_participants: List[Dict]) -> List[Dict]:
 def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[str]) -> List[Dict]:
     """Process a batch of participants through OpenAI API"""
     
+    # Log for debugging
+    print(f"Processing batch of {len(participants)} participants")
+    print(f"API key present: {bool(api_key)}")
+    print(f"API key length: {len(api_key) if api_key else 0}")
+    print(f"Proxy URL: {proxy_url}")
+    
     system_prompt = """Ты эксперт по анализу участников предпринимательского сообщества.
     Извлеки структурированную информацию и определи кластер для каждого участника.
     
@@ -137,42 +148,46 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
     if proxy_url:
         client_kwargs['proxies'] = proxy_url
     
-    with httpx.Client(**client_kwargs) as client:
-        response = client.post(
-            'https://api.openai.com/v1/chat/completions',
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json'
-            },
-            json={
-                'model': 'gpt-4o-mini',  # Using faster model to avoid timeouts
-                'messages': [
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt}
-                ],
-                'response_format': {'type': 'json_object'}
-            },
-            timeout=25.0  # Keep under function timeout
-        )
-        
-        if response.status_code == 403:
-            raise Exception(f"OpenAI API access forbidden. Please check if your API key has access to model gpt-5-2025-08-07")
-        elif response.status_code != 200:
-            raise Exception(f"OpenAI API error: {response.status_code} - {response.text}")
-        
-        result = response.json()
-        content = result['choices'][0]['message']['content']
-        
-        try:
-            parsed = json.loads(content)
-            if isinstance(parsed, dict) and 'participants' in parsed:
-                return parsed['participants']
-            elif isinstance(parsed, list):
-                return parsed
-            else:
-                return [parsed]
-        except:
-            return []
+    try:
+        with httpx.Client(**client_kwargs) as client:
+            response = client.post(
+                'https://api.openai.com/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'model': 'gpt-4o-mini',  # Using faster model to avoid timeouts
+                    'messages': [
+                        {'role': 'system', 'content': system_prompt},
+                        {'role': 'user', 'content': user_prompt}
+                    ],
+                    'response_format': {'type': 'json_object'}
+                },
+                timeout=25.0  # Keep under function timeout
+            )
+            
+            if response.status_code == 403:
+                raise Exception(f"OpenAI API access forbidden. Please check if your API key has access to model gpt-4o-mini")
+            elif response.status_code != 200:
+                raise Exception(f"OpenAI API error: {response.status_code} - {response.text}")
+            
+            result = response.json()
+            content = result['choices'][0]['message']['content']
+            
+            try:
+                parsed = json.loads(content)
+                if isinstance(parsed, dict) and 'participants' in parsed:
+                    return parsed['participants']
+                elif isinstance(parsed, list):
+                    return parsed
+                else:
+                    return [parsed]
+            except:
+                return []
+    except Exception as e:
+        print(f"Error in process_batch: {str(e)}")
+        raise
 
 
 def save_to_database(participants: List[Dict]) -> Dict[str, Any]:
