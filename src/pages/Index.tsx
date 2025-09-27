@@ -215,7 +215,7 @@ const Index: React.FC = () => {
       {/* Легенда кластеров - компактная версия */}
       {tagsConfig && Object.keys(tagsConfig.clusterColors).length > 0 && (() => {
         // Подсчитываем количество участников в каждом кластере
-        const clusterCounts = filteredParticipants.reduce((acc, p) => {
+        const clusterCounts = filteredEntrepreneurs.reduce((acc, p) => {
           acc[p.cluster] = (acc[p.cluster] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
