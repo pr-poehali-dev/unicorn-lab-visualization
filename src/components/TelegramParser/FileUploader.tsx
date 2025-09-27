@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { Progress } from '@/components/ui/progress';
-import { toast } from 'sonner';
 
 interface FileUploaderProps {
   uploading: boolean;
