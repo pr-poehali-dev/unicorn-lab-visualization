@@ -77,24 +77,34 @@ export function useNodeInteractions({
     } else {
       const node = getNodeAtPosition(x, y);
       
-      // Используем небольшую задержку для стабилизации hover состояния
+      // Очищаем предыдущий таймер
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
       }
       
-      if (node) {
-        // Если навели на узел, показываем теги сразу
-        setHoveredNode(node.id);
+      const currentNodeId = node?.id || null;
+      
+      // Если изменился узел под курсором
+      if (currentNodeId !== hoveredNode) {
+        if (node) {
+          // Навели на новый узел - показываем теги сразу
+          setHoveredNode(node.id);
+          canvas.style.cursor = 'pointer';
+        } else {
+          // Убрали курсор с узла - скрываем теги сразу
+          setHoveredNode(null);
+          canvas.style.cursor = 'grab';
+        }
+      } else if (node) {
+        // Курсор все еще над тем же узлом
         canvas.style.cursor = 'pointer';
       } else {
-        // Если убрали курсор с узла, скрываем теги с небольшой задержкой
-        hoverTimeoutRef.current = window.setTimeout(() => {
-          setHoveredNode(null);
-        }, 100);
+        // Курсор не над узлом
         canvas.style.cursor = 'grab';
       }
     }
-  }, [draggedNode, getNodeAtPosition, canvasRef, simulationRef]);
+  }, [draggedNode, getNodeAtPosition, canvasRef, simulationRef, hoveredNode]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (draggedNode && dragStartPosRef.current) {
@@ -136,7 +146,15 @@ export function useNodeInteractions({
   }, [draggedNode, onNodeClick, canvasRef, simulationRef, nodePositionsRef]);
 
   const handleMouseLeave = useCallback(() => {
+    // Всегда сбрасываем hoveredNode при выходе из canvas
     setHoveredNode(null);
+    
+    // Очищаем любые активные таймеры
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    
     if (draggedNode) {
       // При выходе за пределы canvas сохраняем позицию
       nodePositionsRef.current.set(draggedNode.id, { 

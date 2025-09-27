@@ -31,6 +31,7 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
+      onMouseOut={handleMouseLeave}
     />
   );
 };
