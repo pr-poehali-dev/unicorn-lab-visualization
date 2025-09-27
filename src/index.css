@@ -170,3 +170,13 @@
     border-radius: 3px;
   }
 }
+
+/* Анимация плавного появления */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
