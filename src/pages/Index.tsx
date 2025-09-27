@@ -203,6 +203,7 @@ const Index: React.FC = () => {
         </div>
       ) : (
         <ForceGraph
+          key={`${selectedCluster}-${selectedTags.join(',')}`}
           ref={forceGraphRef}
           nodes={filteredEntrepreneurs}
           edges={filteredEdges}
