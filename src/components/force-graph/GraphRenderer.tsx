@@ -121,17 +121,23 @@ export class GraphRenderer {
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
-    // Белый круг для аватарки
+    // Темный круг для фона эмодзи
     ctx.fillStyle = '#1a1a1a';
     ctx.beginPath();
     ctx.arc(node.x, node.y, nodeSize, 0, Math.PI * 2);
     ctx.fill();
 
-    // Emoji аватарка
-    ctx.font = `${nodeSize}px Arial`;
+    // Рисуем эмодзи
+    const emoji = node.data.emoji || node.data.avatar || '😊';
+    
+    // Рисуем эмодзи как текст
+    ctx.save();
+    ctx.font = `${nodeSize * 0.7}px Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(node.data.emoji || node.data.avatar || '😊', node.x, node.y + 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(emoji, node.x, node.y);
+    ctx.restore();
 
     // Имя участника
     ctx.fillStyle = '#ffffff';
