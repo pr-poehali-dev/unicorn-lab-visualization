@@ -14,7 +14,9 @@ const Navigation = () => {
           </Link>
           
           <div className="flex items-center gap-4">
-            {/* Убрал лишние кнопки навигации */}
+            <Button variant="ghost" asChild>
+              <Link to="/tags-demo">Система тегов</Link>
+            </Button>
           </div>
         </div>
       </div>
