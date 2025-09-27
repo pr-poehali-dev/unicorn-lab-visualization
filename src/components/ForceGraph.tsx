@@ -117,8 +117,15 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   
   // Форсируем перерисовку при изменении фильтров
   useEffect(() => {
-    drawGraph();
-  }, [nodes, selectedCluster, drawGraph]);
+    // Небольшая задержка чтобы дать симуляции обновиться
+    const timeoutId = setTimeout(() => {
+      drawGraph();
+      // Дополнительная перерисовка через короткий промежуток
+      setTimeout(drawGraph, 100);
+    }, 10);
+    
+    return () => clearTimeout(timeoutId);
+  }, [nodes, edges, selectedCluster, drawGraph]);
 
   // Функция обновления hover состояния
   const updateHoverState = useCallback(() => {

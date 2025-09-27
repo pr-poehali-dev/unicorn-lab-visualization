@@ -85,6 +85,8 @@ export function useSimulation({
       simulationRef.current.alpha(0.3).restart();
       // Форсируем несколько тиков для обновления позиций
       simulationRef.current.tick(5);
+      // Принудительно вызываем отрисовку
+      onTickRef.current();
       return;
     }
     
@@ -136,6 +138,8 @@ export function useSimulation({
     
     // Форсируем несколько тиков для инициализации позиций
     simulation.tick(10);
+    // Принудительно вызываем отрисовку после инициализации
+    onTickRef.current();
 
     let lastDrawTime = 0;
     const MIN_DRAW_INTERVAL = 16; // ~60 FPS
