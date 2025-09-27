@@ -23,7 +23,6 @@ const Index: React.FC = () => {
   const [showParser, setShowParser] = useState(false);
   const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tagsConfig, setTagsConfig] = useState<TagsConfig | null>(null);
 
