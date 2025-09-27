@@ -49,13 +49,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({'error': 'No participants provided'})
             }
         
-        # Limit participants to avoid timeout (process max 50 at once)
-        participants_to_process = raw_participants[:50]
-        if len(raw_participants) > 50:
-            print(f"WARNING: Processing only first 50 out of {len(raw_participants)} participants to avoid timeout")
-        
         # First, cluster participants using OpenAI
-        clustered_participants = cluster_participants(participants_to_process)
+        clustered_participants = cluster_participants(raw_participants)
         
         if not clustered_participants:
             return {
@@ -168,7 +163,7 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
                         {'role': 'user', 'content': user_prompt}
                     ],
                     'response_format': {'type': 'json_object'},
-                    'max_tokens': 2000  # Limit response size
+                    'max_tokens': 4000
                 },
                 timeout=10.0  # Reduced timeout per request
             )

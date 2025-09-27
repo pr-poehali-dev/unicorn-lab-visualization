@@ -314,29 +314,69 @@ const TelegramParser: React.FC = () => {
         throw new Error('Файл должен содержать массив участников');
       }
       
-      setUploadProgress(30);
-      toast.info(`Загружено ${participants.length} участников, начинаем обработку...`);
+      setUploadProgress(20);
+      toast.info(`Загружено ${participants.length} участников, начинаем пакетную обработку...`);
       
-      // Отправляем на сервер для кластеризации и сохранения
-      const response = await fetch('https://functions.poehali.dev/66267fe8-bc76-4f15-a55a-a89fd93c694c', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ participants })
-      });
+      // Обрабатываем в батчах по 30 для избежания таймаутов
+      const batchSize = 30;
+      const totalBatches = Math.ceil(participants.length / batchSize);
+      let totalImported = 0;
+      let totalUpdated = 0;
+      let totalConnections = 0;
+      const allClusters: Record<string, number> = {};
       
-      setUploadProgress(70);
-      
-      if (!response.ok) {
-        throw new Error('Ошибка при обработке данных');
+      for (let i = 0; i < participants.length; i += batchSize) {
+        const batch = participants.slice(i, i + batchSize);
+        const currentBatch = Math.floor(i / batchSize) + 1;
+        const progress = 20 + ((currentBatch / totalBatches) * 70);
+        
+        setUploadProgress(progress);
+        toast.info(`Обработка партии ${currentBatch}/${totalBatches} (${batch.length} участников)...`);
+        
+        try {
+          const response = await fetch('https://functions.poehali.dev/66267fe8-bc76-4f15-a55a-a89fd93c694c', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ participants: batch })
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Ошибка в партии ${currentBatch}:`, errorText);
+            toast.error(`Ошибка в партии ${currentBatch}, продолжаем обработку...`);
+            continue;
+          }
+          
+          const result = await response.json();
+          totalImported += result.imported || 0;
+          totalUpdated += result.updated || 0;
+          totalConnections += result.connections_created || 0;
+          
+          // Объединяем кластеры
+          if (result.clusters) {
+            Object.entries(result.clusters).forEach(([cluster, count]) => {
+              allClusters[cluster] = (allClusters[cluster] || 0) + (count as number);
+            });
+          }
+          
+        } catch (batchError) {
+          console.error(`Ошибка при обработке партии ${currentBatch}:`, batchError);
+          toast.error(`Пропущена партия ${currentBatch} из-за ошибки`);
+        }
       }
       
-      const result = await response.json();
       setUploadProgress(100);
-      setUploadResult(result);
+      setUploadResult({
+        imported: totalImported,
+        updated: totalUpdated,
+        total: participants.length,
+        connections_created: totalConnections,
+        clusters: allClusters
+      });
       
-      toast.success(`Успешно! Импортировано: ${result.imported}, обновлено: ${result.updated}`);
+      toast.success(`Обработка завершена! Импортировано: ${totalImported}, обновлено: ${totalUpdated}`);
       
       // Перезагружаем страницу через 2 секунды
       setTimeout(() => {
