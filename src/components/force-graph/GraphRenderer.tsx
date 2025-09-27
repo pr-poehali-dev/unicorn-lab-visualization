@@ -34,8 +34,10 @@ export class GraphRenderer {
   static drawEdges(props: GraphRendererProps) {
     const { ctx, simNodes, edges, selectedCluster, simulationRef } = props;
     
-    // Используем все узлы, так как фильтрация уже произошла
-    const visibleNodes = simNodes;
+    const visibleNodes = selectedCluster && selectedCluster !== 'Все'
+      ? simNodes.filter(n => n.data.cluster === selectedCluster)
+      : simNodes;
+
     const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
 
     // Получаем связи из симуляции
@@ -212,8 +214,10 @@ export class GraphRenderer {
     // Рисуем связи
     this.drawEdges(props);
 
-    // Используем все узлы, так как фильтрация уже произошла в родительском компоненте
-    const visibleNodes = simNodes;
+    // Фильтруем видимые узлы
+    const visibleNodes = selectedCluster && selectedCluster !== 'Все'
+      ? simNodes.filter(n => n.data.cluster === selectedCluster)
+      : simNodes;
 
     // Рисуем узлы
     visibleNodes.forEach(node => {

@@ -52,15 +52,18 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     const simNodes = simulationRef.current.nodes();
     if (!simNodes || simNodes.length === 0) return null;
     
-    // Используем все узлы, так как они уже отфильтрованы
-    return simNodes.find(node => {
+    const visibleNodes = selectedCluster && selectedCluster !== 'Все'
+      ? simNodes.filter(n => n.data.cluster === selectedCluster)
+      : simNodes;
+
+    return visibleNodes.find(node => {
       // Проверяем что у узла есть валидные координаты
       if (typeof node.x !== 'number' || typeof node.y !== 'number') return false;
       
       const distance = Math.sqrt(Math.pow(node.x - x, 2) + Math.pow(node.y - y, 2));
       return distance <= 40;
     }) || null;
-  }, []);
+  }, [selectedCluster]);
 
   // Функция отрисовки графа
   const drawGraph = useCallback(() => {
@@ -85,7 +88,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       zoom,
       pan: isPanning.current ? panRef.current : pan
     });
-  }, [dimensions, edges, clusterColors, hoveredNodeId, draggedNode, zoom, pan]);
+  }, [selectedCluster, dimensions, edges, clusterColors, hoveredNodeId, draggedNode, zoom, pan]);
 
   // Хук для управления симуляцией
   const simulation = useSimulation({
@@ -111,27 +114,6 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       return () => clearTimeout(timeoutId);
     }
   }, [nodes.length, drawGraph]);
-  
-  // Форсируем перерисовку при изменении данных узлов
-  useEffect(() => {
-    // Создаем уникальный ключ для текущего набора узлов
-    const nodesKey = nodes.map(n => n.id).sort().join(',');
-    
-    console.log('ForceGraph: данные изменились', {
-      nodesCount: nodes.length,
-      edgesCount: edges.length
-    });
-    
-    // Сбрасываем состояние hover при изменении данных
-    setHoveredNodeId(null);
-    
-    // Даем симуляции время обновиться и делаем одну перерисовку
-    const timeoutId = setTimeout(() => {
-      drawGraph();
-    }, 100);
-    
-    return () => clearTimeout(timeoutId);
-  }, [nodes, edges, drawGraph]);
 
   // Функция обновления hover состояния
   const updateHoverState = useCallback(() => {
