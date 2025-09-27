@@ -11,7 +11,6 @@ interface DrawGraphParams {
   clusterColors: Record<string, string>;
   hoveredNode: string | null;
   draggedNode: SimulationNode | null;
-  tagOpacities?: Map<string, number>;
 }
 
 export class GraphRenderer {
@@ -86,8 +85,7 @@ export class GraphRenderer {
     node: SimulationNode,
     clusterColors: Record<string, string>,
     isHovered: boolean,
-    isDragged: boolean,
-    tagOpacity: number = 0
+    isDragged: boolean
   ) {
     const nodeSize = 40; // Фиксированный размер без увеличения
 
@@ -144,9 +142,9 @@ export class GraphRenderer {
     ctx.textAlign = 'center';
     ctx.fillText(node.data.name, node.x, node.y + nodeSize + 20);
 
-    // Топ-3 тега с анимацией fade
-    if (tagOpacity > 0 && node.data.tags.length > 0) {
-      this.drawNodeTags(ctx, node, clusterColors, nodeSize, tagOpacity);
+    // Топ-3 тега при наведении
+    if ((isHovered || isDragged) && node.data.tags.length > 0) {
+      this.drawNodeTags(ctx, node, clusterColors, nodeSize);
     }
   }
 
@@ -154,19 +152,12 @@ export class GraphRenderer {
     ctx: CanvasRenderingContext2D,
     node: SimulationNode,
     clusterColors: Record<string, string>,
-    nodeSize: number,
-    opacity: number
+    nodeSize: number
   ) {
     const topTags = node.data.tags.slice(0, 3);
     
     topTags.forEach((tag, index) => {
       const tagY = node.y + nodeSize + 40 + (index * 25);
-      
-      // Сохраняем состояние перед отрисовкой тега
-      ctx.save();
-      
-      // Применяем прозрачность для fade анимации
-      ctx.globalAlpha = opacity;
       
       // Устанавливаем единый шрифт как у имени
       ctx.font = '12px Inter';
@@ -207,14 +198,11 @@ export class GraphRenderer {
       ctx.strokeStyle = 'transparent';
       ctx.lineWidth = 0;
       ctx.fillText(tag, node.x, tagY);
-      
-      // Восстанавливаем состояние
-      ctx.restore();
     });
   }
 
   static draw(params: DrawGraphParams) {
-    const { ctx, dimensions, simNodes, edges, simulationRef, selectedCluster, clusterColors, hoveredNode, draggedNode, tagOpacities } = params;
+    const { ctx, dimensions, simNodes, edges, simulationRef, selectedCluster, clusterColors, hoveredNode, draggedNode } = params;
     
     this.drawBackground(ctx, dimensions);
 
@@ -231,8 +219,7 @@ export class GraphRenderer {
     visibleNodes.forEach(node => {
       const isHovered = node.id === hoveredNode;
       const isDragged = draggedNode?.id === node.id;
-      const tagOpacity = tagOpacities?.get(node.id) || 0;
-      this.drawNode(ctx, node, clusterColors, isHovered, isDragged, tagOpacity);
+      this.drawNode(ctx, node, clusterColors, isHovered, isDragged);
     });
   }
 }

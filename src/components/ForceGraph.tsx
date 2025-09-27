@@ -27,8 +27,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   const isMouseInsideRef = useRef(false);
   const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   
-  // Анимация тегов
-  const [tagOpacities, setTagOpacities] = useState<Map<string, number>>(new Map());
+
 
   // Хук для управления размерами canvas
   const dimensions = useCanvasResize({ containerRef, canvasRef, simulationRef });
@@ -72,10 +71,9 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       clusterColors,
       hoveredNode: hoveredNodeId,
       draggedNode,
-      simulationRef,
-      tagOpacities
+      simulationRef
     });
-  }, [selectedCluster, dimensions, edges, clusterColors, hoveredNodeId, draggedNode, tagOpacities]);
+  }, [selectedCluster, dimensions, edges, clusterColors, hoveredNodeId, draggedNode]);
 
   // Хук для управления симуляцией
   const simulation = useSimulation({
@@ -101,53 +99,6 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       return () => clearTimeout(timeoutId);
     }
   }, [nodes.length, drawGraph]);
-  
-  // Анимация fade для тегов
-  useEffect(() => {
-    let animationId: number;
-    const targetOpacity = hoveredNodeId ? 1 : 0;
-    const fadeSpeed = 0.08; // Увеличенная скорость анимации для более плавного эффекта
-    
-    const animate = () => {
-      let hasChanges = false;
-      const newOpacities = new Map(tagOpacities);
-      
-      // Обновляем прозрачность для hovered узла
-      if (hoveredNodeId) {
-        const currentOpacity = newOpacities.get(hoveredNodeId) || 0;
-        if (currentOpacity < targetOpacity) {
-          newOpacities.set(hoveredNodeId, Math.min(currentOpacity + fadeSpeed, targetOpacity));
-          hasChanges = true;
-        }
-      }
-      
-      // Уменьшаем прозрачность для не-hovered узлов
-      for (const [nodeId, opacity] of newOpacities) {
-        if (nodeId !== hoveredNodeId && opacity > 0) {
-          const newOpacity = Math.max(opacity - fadeSpeed, 0);
-          if (newOpacity === 0) {
-            newOpacities.delete(nodeId);
-          } else {
-            newOpacities.set(nodeId, newOpacity);
-          }
-          hasChanges = true;
-        }
-      }
-      
-      if (hasChanges) {
-        setTagOpacities(newOpacities);
-        animationId = requestAnimationFrame(animate);
-      }
-    };
-    
-    animationId = requestAnimationFrame(animate);
-    
-    return () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-    };
-  }, [hoveredNodeId, tagOpacities]);
 
   // Функция обновления hover состояния
   const updateHoverState = useCallback(() => {
