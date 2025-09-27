@@ -29,7 +29,6 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   
   // Анимация тегов
   const [tagOpacities, setTagOpacities] = useState<Map<string, number>>(new Map());
-  const animationFrameRef = useRef<number | null>(null);
 
   // Хук для управления размерами canvas
   const dimensions = useCanvasResize({ containerRef, canvasRef, simulationRef });
