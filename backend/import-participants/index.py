@@ -3,6 +3,7 @@ import os
 import psycopg2
 from typing import Dict, Any, List
 import openai
+import httpx
 from datetime import datetime
 
 # Система тегов для предпринимателей
@@ -84,7 +85,17 @@ def should_connect(tags1: List[str], tags2: List[str]) -> bool:
 
 def analyze_with_gpt(text: str, existing_tags: List[str] = None) -> Dict[str, Any]:
     """Анализирует текст с помощью GPT и возвращает структурированные данные"""
-    client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+    # Инициализация клиента с прокси, если задан
+    api_key = os.environ.get('OPENAI_API_KEY')
+    proxy_url = os.environ.get('OPENAI_HTTP_PROXY')
+    
+    if proxy_url:
+        # Используем httpx клиент с прокси
+        import httpx
+        http_client = httpx.Client(proxies=proxy_url)
+        client = openai.OpenAI(api_key=api_key, http_client=http_client)
+    else:
+        client = openai.OpenAI(api_key=api_key)
     
     # Формируем список всех доступных тегов
     tags_by_category = "\n".join([
