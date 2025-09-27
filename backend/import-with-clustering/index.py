@@ -169,9 +169,11 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
                         {'role': 'user', 'content': user_prompt}
                     ],
                     'response_format': {'type': 'json_object'},
-                    'max_tokens': 1500  # Reduced to speed up response
+                    'max_tokens': 300,  # Ultra minimal for speed
+                    'temperature': 0,  # Deterministic
+                    'top_p': 0.1  # Narrow sampling
                 },
-                timeout=20.0  # Balanced timeout to avoid function timeout
+                timeout=8.0  # Very short timeout for fast response
             )
             
             if response.status_code == 403:
