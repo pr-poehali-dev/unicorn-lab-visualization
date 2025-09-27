@@ -153,14 +153,14 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
                 'Content-Type': 'application/json'
             },
             json={
-                'model': 'gpt-5-2025-08-07',  # Using GPT-5 as requested
+                'model': 'gpt-4o-mini',  # Using faster model to avoid timeouts
                 'messages': [
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt}
                 ],
                 'response_format': {'type': 'json_object'}
             },
-            timeout=60.0
+            timeout=25.0  # Keep under function timeout
         )
         
         if response.status_code != 200:
