@@ -31,19 +31,25 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const panRef = useRef({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
   const isPanning = useRef(false);
   const panStartPos = useRef<{ x: number; y: number } | null>(null);
   const panAnimationFrame = useRef<number | null>(null);
+  const zoomAnimationFrame = useRef<number | null>(null);
   
 
 
   // Хук для управления размерами canvas
   const dimensions = useCanvasResize({ containerRef, canvasRef, simulationRef });
   
-  // Синхронизируем panRef с pan state
+  // Синхронизируем panRef и zoomRef с состояниями
   useEffect(() => {
     panRef.current = pan;
   }, [pan]);
+  
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
 
   // Функция поиска узла по координатам
   const getNodeAtPosition = useCallback((x: number, y: number): SimulationNode | null => {
@@ -85,10 +91,10 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       hoveredNode: hoveredNodeId,
       draggedNode,
       simulationRef,
-      zoom,
-      pan: isPanning.current ? panRef.current : pan
+      zoom: zoomRef.current,
+      pan: panRef.current
     });
-  }, [selectedCluster, dimensions, edges, clusterColors, hoveredNodeId, draggedNode, zoom, pan]);
+  }, [dimensions, edges, clusterColors, hoveredNodeId, draggedNode]);
 
   // Хук для управления симуляцией
   const simulation = useSimulation({
@@ -140,8 +146,8 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     const y = e.clientY - rect.top;
     
     // Преобразуем координаты с учетом zoom и pan
-    const transformedX = (x - pan.x) / zoom;
-    const transformedY = (y - pan.y) / zoom;
+    const transformedX = (x - panRef.current.x) / zoomRef.current;
+    const transformedY = (y - panRef.current.y) / zoomRef.current;
 
     const node = getNodeAtPosition(transformedX, transformedY);
     if (node) {
@@ -153,9 +159,9 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     } else {
       // Если не попали по узлу, начинаем pan
       isPanning.current = true;
-      panStartPos.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+      panStartPos.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
     }
-  }, [getNodeAtPosition, pan, zoom]);
+  }, [getNodeAtPosition]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isPanning.current) {
@@ -186,8 +192,8 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     const y = e.clientY - rect.top;
     
     // Преобразуем координаты с учетом zoom и pan
-    const transformedX = (x - pan.x) / zoom;
-    const transformedY = (y - pan.y) / zoom;
+    const transformedX = (x - panRef.current.x) / zoomRef.current;
+    const transformedY = (y - panRef.current.y) / zoomRef.current;
     
     // Всегда сохраняем текущие координаты мыши (трансформированные)
     mousePosRef.current = { x: transformedX, y: transformedY };
@@ -208,7 +214,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
         setHoveredNodeId(nodeId);
       }
     }
-  }, [draggedNode, getNodeAtPosition, hoveredNodeId, pan, zoom]);
+  }, [draggedNode, getNodeAtPosition, hoveredNodeId, drawGraph]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (isPanning.current) {
@@ -236,8 +242,8 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       
       if (distance < 5) {
         // Преобразуем обратно в экранные координаты для попапа
-        const globalX = rect.left + draggedNode.x * zoom + pan.x;
-        const globalY = rect.top + draggedNode.y * zoom + pan.y;
+        const globalX = rect.left + draggedNode.x * zoomRef.current + panRef.current.x;
+        const globalY = rect.top + draggedNode.y * zoomRef.current + panRef.current.y;
         onNodeClick(draggedNode.data, { x: globalX, y: globalY });
       } else {
         nodePositionsRef.current.set(draggedNode.id, { 
@@ -305,18 +311,33 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     
     // Вычисляем новый зум
     const delta = e.deltaY < 0 ? 1.1 : 0.9;
-    const newZoom = Math.max(0.3, Math.min(3, zoom * delta));
+    const newZoom = Math.max(0.3, Math.min(3, zoomRef.current * delta));
     
     // Корректируем pan чтобы зумить к позиции курсора
-    const zoomRatio = newZoom / zoom;
+    const zoomRatio = newZoom / zoomRef.current;
     const newPan = {
-      x: mouseX - (mouseX - pan.x) * zoomRatio,
-      y: mouseY - (mouseY - pan.y) * zoomRatio
+      x: mouseX - (mouseX - panRef.current.x) * zoomRatio,
+      y: mouseY - (mouseY - panRef.current.y) * zoomRatio
     };
     
-    setZoom(newZoom);
-    setPan(newPan);
-  }, [zoom, pan]);
+    // Обновляем ref немедленно для плавности
+    zoomRef.current = newZoom;
+    panRef.current = newPan;
+    
+    // Отменяем предыдущий кадр анимации
+    if (zoomAnimationFrame.current) {
+      cancelAnimationFrame(zoomAnimationFrame.current);
+    }
+    
+    // Немедленно перерисовываем canvas
+    drawGraph();
+    
+    // Планируем обновление состояния в следующем кадре
+    zoomAnimationFrame.current = requestAnimationFrame(() => {
+      setZoom(newZoom);
+      setPan(newPan);
+    });
+  }, [drawGraph]);
 
   // Проверяем hover состояние когда мышь внутри области
   useEffect(() => {
@@ -386,17 +407,63 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
 
   // Методы управления зумом
   const zoomIn = useCallback(() => {
-    setZoom(prevZoom => Math.min(prevZoom * 1.2, 3)); // Максимум 3x
-  }, []);
+    const newZoom = Math.min(zoomRef.current * 1.2, 3);
+    zoomRef.current = newZoom;
+    
+    // Отменяем предыдущий кадр анимации
+    if (zoomAnimationFrame.current) {
+      cancelAnimationFrame(zoomAnimationFrame.current);
+    }
+    
+    // Немедленно перерисовываем
+    drawGraph();
+    
+    // Обновляем состояние
+    zoomAnimationFrame.current = requestAnimationFrame(() => {
+      setZoom(newZoom);
+    });
+  }, [drawGraph]);
 
   const zoomOut = useCallback(() => {
-    setZoom(prevZoom => Math.max(prevZoom / 1.2, 0.3)); // Минимум 0.3x
-  }, []);
+    const newZoom = Math.max(zoomRef.current / 1.2, 0.3);
+    zoomRef.current = newZoom;
+    
+    // Отменяем предыдущий кадр анимации
+    if (zoomAnimationFrame.current) {
+      cancelAnimationFrame(zoomAnimationFrame.current);
+    }
+    
+    // Немедленно перерисовываем
+    drawGraph();
+    
+    // Обновляем состояние
+    zoomAnimationFrame.current = requestAnimationFrame(() => {
+      setZoom(newZoom);
+    });
+  }, [drawGraph]);
 
   const resetView = useCallback(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  }, []);
+    // Обновляем ref значения
+    zoomRef.current = 1;
+    panRef.current = { x: 0, y: 0 };
+    
+    // Отменяем анимации
+    if (zoomAnimationFrame.current) {
+      cancelAnimationFrame(zoomAnimationFrame.current);
+    }
+    if (panAnimationFrame.current) {
+      cancelAnimationFrame(panAnimationFrame.current);
+    }
+    
+    // Немедленно перерисовываем
+    drawGraph();
+    
+    // Обновляем состояния
+    requestAnimationFrame(() => {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+    });
+  }, [drawGraph]);
 
   React.useImperativeHandle(ref, () => ({
     resetNodePositions,
