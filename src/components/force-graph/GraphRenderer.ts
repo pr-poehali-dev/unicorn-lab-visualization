@@ -11,6 +11,8 @@ interface DrawGraphParams {
   clusterColors: Record<string, string>;
   hoveredNode: string | null;
   draggedNode: SimulationNode | null;
+  zoom?: number;
+  pan?: { x: number; y: number };
 }
 
 export class GraphRenderer {
@@ -202,9 +204,16 @@ export class GraphRenderer {
   }
 
   static draw(params: DrawGraphParams) {
-    const { ctx, dimensions, simNodes, edges, simulationRef, selectedCluster, clusterColors, hoveredNode, draggedNode } = params;
+    const { ctx, dimensions, simNodes, edges, simulationRef, selectedCluster, clusterColors, hoveredNode, draggedNode, zoom = 1, pan = { x: 0, y: 0 } } = params;
+    
+    // Сохраняем текущее состояние контекста
+    ctx.save();
     
     this.drawBackground(ctx, dimensions);
+    
+    // Применяем трансформацию для zoom и pan
+    ctx.translate(pan.x, pan.y);
+    ctx.scale(zoom, zoom);
 
     const visibleNodes = selectedCluster && selectedCluster !== 'Все'
       ? simNodes.filter(n => n.data.cluster === selectedCluster)
@@ -221,5 +230,8 @@ export class GraphRenderer {
       const isDragged = draggedNode?.id === node.id;
       this.drawNode(ctx, node, clusterColors, isHovered, isDragged);
     });
+    
+    // Восстанавливаем состояние контекста
+    ctx.restore();
   }
 }

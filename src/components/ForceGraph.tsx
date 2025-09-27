@@ -27,6 +27,12 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   const isMouseInsideRef = useRef(false);
   const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   
+  // Состояние для zoom и pan
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const isPanning = useRef(false);
+  const panStartPos = useRef<{ x: number; y: number } | null>(null);
+  
 
 
   // Хук для управления размерами canvas
@@ -71,9 +77,11 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       clusterColors,
       hoveredNode: hoveredNodeId,
       draggedNode,
-      simulationRef
+      simulationRef,
+      zoom,
+      pan
     });
-  }, [selectedCluster, dimensions, edges, clusterColors, hoveredNodeId, draggedNode]);
+  }, [selectedCluster, dimensions, edges, clusterColors, hoveredNodeId, draggedNode, zoom, pan]);
 
   // Хук для управления симуляцией
   const simulation = useSimulation({
@@ -123,50 +131,75 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    
+    // Преобразуем координаты с учетом zoom и pan
+    const transformedX = (x - pan.x) / zoom;
+    const transformedY = (y - pan.y) / zoom;
 
-    const node = getNodeAtPosition(x, y);
+    const node = getNodeAtPosition(transformedX, transformedY);
     if (node) {
       setDraggedNode(node);
       dragStartPosRef.current = { x, y };
       node.fx = node.x;
       node.fy = node.y;
       simulationRef.current?.alpha(0.3).restart();
+    } else {
+      // Если не попали по узлу, начинаем pan
+      isPanning.current = true;
+      panStartPos.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
     }
-  }, [getNodeAtPosition]);
+  }, [getNodeAtPosition, pan, zoom]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isPanning.current) {
+      // Обрабатываем pan
+      setPan({
+        x: e.clientX - panStartPos.current!.x,
+        y: e.clientY - panStartPos.current!.y
+      });
+      return;
+    }
+    
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    // Всегда сохраняем текущие координаты мыши
-    mousePosRef.current = { x, y };
+    // Преобразуем координаты с учетом zoom и pan
+    const transformedX = (x - pan.x) / zoom;
+    const transformedY = (y - pan.y) / zoom;
+    
+    // Всегда сохраняем текущие координаты мыши (трансформированные)
+    mousePosRef.current = { x: transformedX, y: transformedY };
     // Убедимся, что флаг установлен
     isMouseInsideRef.current = true;
 
     if (draggedNode) {
-      draggedNode.x = x;
-      draggedNode.y = y;
-      draggedNode.fx = x;
-      draggedNode.fy = y;
+      draggedNode.x = transformedX;
+      draggedNode.y = transformedY;
+      draggedNode.fx = transformedX;
+      draggedNode.fy = transformedY;
       simulationRef.current?.alpha(0.3).restart();
     } else {
       // Немедленно обновляем hover состояние
-      const node = getNodeAtPosition(x, y);
+      const node = getNodeAtPosition(transformedX, transformedY);
       const nodeId = node?.id || null;
       if (nodeId !== hoveredNodeId) {
         setHoveredNodeId(nodeId);
       }
     }
-  }, [draggedNode, getNodeAtPosition, hoveredNodeId]);
+  }, [draggedNode, getNodeAtPosition, hoveredNodeId, pan, zoom]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    if (isPanning.current) {
+      isPanning.current = false;
+      panStartPos.current = null;
+      return;
+    }
+    
     if (draggedNode && dragStartPosRef.current) {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
         
         const distance = Math.sqrt(
           Math.pow(dragStartPosRef.current.x - x, 2) + 
@@ -174,8 +207,9 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
         );
         
         if (distance < 5) {
-          const globalX = rect.left + draggedNode.x;
-          const globalY = rect.top + draggedNode.y;
+          // Преобразуем обратно в экранные координаты для попапа
+          const globalX = rect.left + draggedNode.x * zoom + pan.x;
+          const globalY = rect.top + draggedNode.y * zoom + pan.y;
           onNodeClick(draggedNode.data, { x: globalX, y: globalY });
         } else {
           nodePositionsRef.current.set(draggedNode.id, { 
@@ -191,7 +225,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       dragStartPosRef.current = null;
       simulationRef.current?.alphaTarget(0).restart();
     }
-  }, [draggedNode, onNodeClick]);
+  }, [draggedNode, onNodeClick, zoom, pan]);
 
   const handleMouseLeave = useCallback((e: React.MouseEvent) => {
     // Проверяем, действительно ли мышь покинула область
@@ -233,6 +267,29 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       y: e.clientY - rect.top
     };
   }, []);
+  
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    // Получаем позицию мыши относительно канваса
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Вычисляем новый зум
+    const delta = e.deltaY < 0 ? 1.1 : 0.9;
+    const newZoom = Math.max(0.3, Math.min(3, zoom * delta));
+    
+    // Корректируем pan чтобы зумить к позиции курсора
+    const zoomRatio = newZoom / zoom;
+    const newPan = {
+      x: mouseX - (mouseX - pan.x) * zoomRatio,
+      y: mouseY - (mouseY - pan.y) * zoomRatio
+    };
+    
+    setZoom(newZoom);
+    setPan(newPan);
+  }, [zoom, pan]);
 
   // Проверяем hover состояние когда мышь внутри области
   useEffect(() => {
@@ -300,9 +357,26 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     }
   }, []);
 
+  // Методы управления зумом
+  const zoomIn = useCallback(() => {
+    setZoom(prevZoom => Math.min(prevZoom * 1.2, 3)); // Максимум 3x
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setZoom(prevZoom => Math.max(prevZoom / 1.2, 0.3)); // Минимум 0.3x
+  }, []);
+
+  const resetView = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
   React.useImperativeHandle(ref, () => ({
-    resetNodePositions
-  }), [resetNodePositions]);
+    resetNodePositions,
+    zoomIn,
+    zoomOut,
+    resetView
+  }), [resetNodePositions, zoomIn, zoomOut, resetView]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative">
@@ -335,6 +409,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
         onMouseEnter={handleMouseEnter}
         onPointerMove={handleMouseMove}
         onPointerLeave={handleMouseLeave}
+        onWheel={handleWheel}
       />
     </div>
   );

@@ -13,7 +13,7 @@ import { TagsService, TagsConfig } from '@/services/tagsService';
 
 const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+
   const [selectedCluster, setSelectedCluster] = useState('Все');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedParticipant, setSelectedParticipant] = useState<Entrepreneur | null>(null);
@@ -47,12 +47,6 @@ const Index: React.FC = () => {
   // Фильтрация предпринимателей
   const filteredEntrepreneurs = useMemo(() => {
     return entrepreneurs.filter(entrepreneur => {
-      // Фильтр по поиску
-      if (searchQuery && !entrepreneur.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !entrepreneur.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))) {
-        return false;
-      }
-
       // Фильтр по кластеру
       if (selectedCluster !== 'Все' && entrepreneur.cluster !== selectedCluster) {
         return false;
@@ -65,7 +59,7 @@ const Index: React.FC = () => {
 
       return true;
     });
-  }, [entrepreneurs, searchQuery, selectedCluster, selectedTags]);
+  }, [entrepreneurs, selectedCluster, selectedTags]);
 
   // Загрузка данных из БД
   useEffect(() => {
@@ -143,17 +137,6 @@ const Index: React.FC = () => {
 
       {/* Компактные виджеты в одну линию */}
       <div className="absolute top-8 left-8 flex items-center gap-2">
-        {/* Поиск */}
-        <div className="bg-background/90 backdrop-blur-sm px-3 h-8 rounded-md border flex items-center gap-2">
-          <Icon name="Search" size={16} className="text-muted-foreground" />
-          <Input
-            placeholder="Поиск..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-48 h-6 px-2 py-0 border-0 bg-transparent placeholder:text-muted-foreground focus-visible:ring-0"
-          />
-        </div>
-
         {/* Кластер */}
         <div className="relative">
           <button
@@ -274,6 +257,37 @@ const Index: React.FC = () => {
         </div>
       </div>
 
+      {/* Кнопки управления зумом */}
+      <div className="absolute bottom-20 right-8 flex flex-col gap-2">
+        <Button
+          onClick={() => forceGraphRef.current?.zoomIn()}
+          variant="outline"
+          size="icon"
+          className="bg-background/90 backdrop-blur h-8 w-8"
+          title="Увеличить"
+        >
+          <Icon name="Plus" size={16} />
+        </Button>
+        <Button
+          onClick={() => forceGraphRef.current?.zoomOut()}
+          variant="outline"
+          size="icon"
+          className="bg-background/90 backdrop-blur h-8 w-8"
+          title="Уменьшить"
+        >
+          <Icon name="Minus" size={16} />
+        </Button>
+        <Button
+          onClick={() => forceGraphRef.current?.resetView()}
+          variant="outline"
+          size="icon"
+          className="bg-background/90 backdrop-blur h-8 w-8"
+          title="Сбросить вид"
+        >
+          <Icon name="Maximize" size={16} />
+        </Button>
+      </div>
+      
       {/* Статистика - компактная версия */}
       <div className="absolute bottom-8 right-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
         <div className="flex items-center gap-3 text-xs">
