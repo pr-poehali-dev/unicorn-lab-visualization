@@ -1,7 +1,7 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import ForceGraph from '@/components/ForceGraph';
 import Popover from '@/components/Popover';
-import { clusterColors } from '@/data/mockData';
+
 import { Entrepreneur, GraphEdge } from '@/types/entrepreneur';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import TelegramParser from '@/components/TelegramParser';
 import { ApiService } from '@/services/api';
-import { ENTREPRENEUR_CLUSTERS, ENTREPRENEUR_TAGS } from '@/data/entrepreneurTags';
+import { TagsService, TagsConfig } from '@/services/tagsService';
 
 const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
@@ -26,24 +26,23 @@ const Index: React.FC = () => {
   const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tagsConfig, setTagsConfig] = useState<TagsConfig | null>(null);
 
-  // Используем предопределенные кластеры из системы тегов
-  const clusters = ['Все', ...ENTREPRENEUR_CLUSTERS];
-
-  // Все доступные теги из системы
-  const allAvailableTags = useMemo(() => {
-    return Object.values(ENTREPRENEUR_TAGS).flat().sort();
-  }, []);
+  // Используем кластеры из БД
+  const clusters = useMemo(() => {
+    if (!tagsConfig) return ['Все'];
+    return ['Все', ...tagsConfig.clusters];
+  }, [tagsConfig]);
 
   // Категории тегов для группировки в UI
-  const tagCategories = [
-    { key: 'industry', label: 'Отрасли', tags: ENTREPRENEUR_TAGS.industry },
-    { key: 'skills', label: 'Навыки', tags: ENTREPRENEUR_TAGS.skills },
-    { key: 'stage', label: 'Стадия', tags: ENTREPRENEUR_TAGS.stage },
-    { key: 'needs', label: 'Что ищут', tags: ENTREPRENEUR_TAGS.needs },
-    { key: 'offers', label: 'Предлагают', tags: ENTREPRENEUR_TAGS.offers },
-    { key: 'model', label: 'Модель', tags: ENTREPRENEUR_TAGS.model }
-  ];
+  const tagCategories = useMemo(() => {
+    if (!tagsConfig) return [];
+    return tagsConfig.categories.map(cat => ({
+      key: cat.key,
+      label: cat.name,
+      tags: tagsConfig.tagsByCategory[cat.key] || []
+    }));
+  }, [tagsConfig]);
 
   // Фильтрация предпринимателей
   const filteredEntrepreneurs = useMemo(() => {
@@ -73,12 +72,19 @@ const Index: React.FC = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const data = await ApiService.getParticipants();
-        const { entrepreneurs: loadedEntrepreneurs, edges: loadedEdges } = ApiService.transformToEntrepreneurs(data);
+        
+        // Загружаем конфигурацию тегов и участников параллельно
+        const [tagsConfigData, participantsData] = await Promise.all([
+          TagsService.getTagsConfig(),
+          ApiService.getParticipants()
+        ]);
+        
+        setTagsConfig(tagsConfigData);
+        const { entrepreneurs: loadedEntrepreneurs, edges: loadedEdges } = ApiService.transformToEntrepreneurs(participantsData);
         setEntrepreneurs(loadedEntrepreneurs);
         setEdges(loadedEdges);
       } catch (error) {
-        console.error('Failed to load participants:', error);
+        console.error('Failed to load data:', error);
       } finally {
         setLoading(false);
       }
@@ -206,19 +212,21 @@ const Index: React.FC = () => {
       </div>
 
       {/* Легенда кластеров - компактная версия */}
-      <div className="absolute bottom-8 left-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
-        <div className="flex items-center gap-3">
-          {Object.entries(clusterColors).map(([cluster, color]) => (
-            <div key={cluster} className="flex items-center gap-1.5">
-              <div 
-                className="w-2 h-2 rounded-full" 
-                style={{ backgroundColor: color }}
-              />
-              <span className="text-xs text-muted-foreground">{cluster}</span>
-            </div>
-          ))}
+      {tagsConfig && Object.keys(tagsConfig.clusterColors).length > 0 && (
+        <div className="absolute bottom-8 left-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
+          <div className="flex items-center gap-3">
+            {Object.entries(tagsConfig.clusterColors).map(([cluster, color]) => (
+              <div key={cluster} className="flex items-center gap-1.5">
+                <div 
+                  className="w-2 h-2 rounded-full" 
+                  style={{ backgroundColor: color }}
+                />
+                <span className="text-xs text-muted-foreground">{cluster}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Счетчик узлов и кнопка сброса */}
       <div className="absolute top-8 right-8 flex items-center gap-2">
@@ -285,7 +293,7 @@ const Index: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <div 
                     className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: clusterColors[selectedParticipant.cluster] || '#666' }}
+                    style={{ backgroundColor: tagsConfig?.clusterColors[selectedParticipant.cluster] || '#666' }}
                   />
                   <span className="text-sm text-muted-foreground">{selectedParticipant.cluster}</span>
                 </div>

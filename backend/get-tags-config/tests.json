@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Get tags configuration",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "clusters": "array",
+        "clusterColors": "object",
+        "categories": "array",
+        "tagsByCategory": "object",
+        "allTags": "array",
+        "connections": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
