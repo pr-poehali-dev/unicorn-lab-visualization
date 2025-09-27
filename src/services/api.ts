@@ -23,8 +23,7 @@ export interface ParticipantsResponse {
   connections: Array<{
     source: number;
     target: number;
-    type: string;
-    strength: number;
+    weight: number;
   }>;
   total: number;
 }
@@ -88,7 +87,7 @@ export class ApiService {
     const edges: GraphEdge[] = data.connections.map(c => ({
       source: idMap.get(c.source) || c.source.toString(),
       target: idMap.get(c.target) || c.target.toString(),
-      weight: c.strength / 10 // Преобразуем strength (1-10) в weight (0.1-1.0)
+      weight: c.weight // Теперь weight уже в диапазоне 0-1
     }));
 
     return { entrepreneurs, edges };

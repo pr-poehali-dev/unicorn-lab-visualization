@@ -64,7 +64,7 @@ const TelegramParser: React.FC = () => {
         toast.info(`Обработка партии ${currentBatch}/${totalBatches} (${batch.length} участников)...`);
         
         try {
-          const response = await fetch('https://functions.poehali.dev/66267fe8-bc76-4f15-a55a-a89fd93c694c', {
+          const response = await fetch('https://functions.poehali.dev/eb47b524-75f9-4c36-8ba4-13e4d746f257', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

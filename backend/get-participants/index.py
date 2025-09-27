@@ -83,7 +83,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Get connections
         cur.execute("""
-            SELECT source_id, target_id, connection_type, strength
+            SELECT source_id, target_id, weight
             FROM t_p95295728_unicorn_lab_visualiz.connections
         """)
         connections = []
@@ -91,8 +91,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             connections.append({
                 'source': row[0],
                 'target': row[1],
-                'type': row[2],
-                'strength': row[3]
+                'weight': float(row[2])
             })
         
         cur.close()
