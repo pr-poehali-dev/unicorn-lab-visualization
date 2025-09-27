@@ -131,7 +131,7 @@ export class GraphRenderer {
     ctx.font = `${nodeSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(node.data.avatar, node.x, node.y + 2);
+    ctx.fillText(node.data.emoji || node.data.avatar || '😊', node.x, node.y + 2);
 
     // Имя участника
     ctx.fillStyle = '#ffffff';

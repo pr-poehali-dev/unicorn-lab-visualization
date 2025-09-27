@@ -178,6 +178,7 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
                         "cluster": {"type": "string", "enum": clusters},
                         "summary": {"type": "string"},
                         "goal": {"type": "string"},
+                        "emoji": {"type": "string", "minLength": 1, "maxLength": 2},
                         "tags": {
                             "type": "array",
                             "items": {"type": "string", "enum": allowed_tags},
@@ -185,7 +186,7 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
                             "maxItems": 10
                         }
                     },
-                    "required": ["name", "telegram_id", "cluster", "summary", "goal", "tags"],
+                    "required": ["name", "telegram_id", "cluster", "summary", "goal", "emoji", "tags"],
                     "additionalProperties": False
                 }
             }
@@ -214,7 +215,22 @@ TASK:
 2. Assign ONE cluster from this list: {', '.join(clusters)}
 3. Create a 1-2 sentence summary in Russian highlighting their expertise and achievements
 4. Extract their main GOAL - what they want to achieve or find (1 sentence in Russian)
-5. Select 3-10 tags from the provided list that best describe the person
+5. Select ONE emoji that best represents this person's profession, industry or personality
+6. Select 3-10 tags from the provided list that best describe the person
+
+EMOJI SELECTION:
+- Choose ONE single emoji that best represents the person
+- For IT/tech people: 💻, 🚀, ⚡, 🔧, 📱
+- For business/finance: 💼, 💰, 📈, 🏢, 💎
+- For creative: 🎨, 🎭, 🎬, 📸, 🎵
+- For education: 📚, 🎓, 👨‍🏫, 🧠
+- For healthcare: 🏥, 💊, 🩺, ❤️
+- For marketing: 📢, 🎯, 📊, 🔥
+- For food/restaurant: 🍕, 🍔, 🥘, 👨‍🍳
+- For sports/fitness: 💪, 🏃, ⚽, 🏋️
+- For travel: ✈️, 🌍, 🏝️
+- For eco/green: 🌱, ♻️, 🌿
+- Default if unsure: 😊, 🌟, 💫
 
 AVAILABLE TAGS (use EXACTLY as written, including Russian):
 {', '.join(allowed_tags)}
@@ -294,6 +310,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                 tags = parsed_data['tags']
                 summary = parsed_data['summary']
                 goal = parsed_data['goal']
+                emoji = parsed_data.get('emoji', '😊')
             else:
                 # Skip participants without AI processing
                 continue
@@ -314,7 +331,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                 cur.execute("""
                     UPDATE t_p95295728_unicorn_lab_visualiz.entrepreneurs 
                     SET name = %s, description = %s, post_url = %s, 
-                        cluster = %s, goal = %s, updated_at = CURRENT_TIMESTAMP
+                        cluster = %s, goal = %s, emoji = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE telegram_id = %s
                     RETURNING id
                 """, (
@@ -323,6 +340,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                     participant.get('messageLink', ''),
                     cluster,
                     goal,
+                    emoji,
                     telegram_id
                 ))
                 updated_count += 1
@@ -331,8 +349,8 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                 cur.execute("""
                     INSERT INTO t_p95295728_unicorn_lab_visualiz.entrepreneurs (
                         telegram_id, name, description, post_url, 
-                        cluster, goal, created_at, updated_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, 
+                        cluster, goal, emoji, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s,
                             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                     RETURNING id
                 """, (
@@ -341,7 +359,8 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                     summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
                     cluster,
-                    goal
+                    goal,
+                    emoji
                 ))
                 entrepreneur_id = cur.fetchone()[0]
                 imported_count += 1

@@ -79,7 +79,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Build query with full schema names
         query = """
             SELECT e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, 
-                   e.description, e.post_url, e.goal, e.created_at, e.updated_at,
+                   e.description, e.post_url, e.goal, e.emoji, e.created_at, e.updated_at,
                    COALESCE(array_agg(t.name) FILTER (WHERE t.name IS NOT NULL), '{}') as tags
             FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs e
             LEFT JOIN t_p95295728_unicorn_lab_visualiz.entrepreneur_tags et ON e.id = et.entrepreneur_id
@@ -100,7 +100,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             query += " AND e.cluster = %s"
             query_params.append(cluster_filter)
         
-        query += " GROUP BY e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, e.description, e.post_url, e.goal, e.created_at, e.updated_at"
+        query += " GROUP BY e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, e.description, e.post_url, e.goal, e.emoji, e.created_at, e.updated_at"
         query += " ORDER BY e.name"
         
         # Execute query
@@ -118,11 +118,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'role': row[4],
                 'cluster': row[5],
                 'description': row[6],
-                'tags': row[11] if row[11] != '{}' else [],
+                'tags': row[12] if row[12] != '{}' else [],
                 'post_url': row[7],
                 'goal': row[8],
-                'created_at': row[9].isoformat() if row[9] else None,
-                'updated_at': row[10].isoformat() if row[10] else None
+                'emoji': row[9] or '😊',
+                'created_at': row[10].isoformat() if row[10] else None,
+                'updated_at': row[11].isoformat() if row[11] else None
             })
         
         # Load tag connections for dynamic calculation

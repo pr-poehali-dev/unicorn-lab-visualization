@@ -12,6 +12,7 @@ export interface Entrepreneur {
   role?: string;
   postUrl?: string;
   goal?: string;
+  emoji?: string;
 }
 
 export interface GraphEdge {
