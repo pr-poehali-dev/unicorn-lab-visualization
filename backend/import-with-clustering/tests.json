@@ -1,0 +1,35 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": "",
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Import with clustering",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "participants": [
+          {
+            "authorId": "test123",
+            "messageLink": "https://t.me/test",
+            "text": "Иван Петров, разработчик"
+          }
+        ]
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "imported": "number",
+        "updated": "number",
+        "clusters": "object",
+        "total": "number"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import Icon from './ui/icon';
 import { toast } from 'sonner';
+import { Progress } from './ui/progress';
 
 const TELEGRAM_PARSER_SCRIPT = `async function collectAllParticipants() {
   // ⚙️ КОНФИГУРАЦИЯ
@@ -278,6 +279,10 @@ collectAllParticipants();`;
 
 const TelegramParser: React.FC = () => {
   const [showInstructions, setShowInstructions] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const copyScript = async () => {
     try {
@@ -285,6 +290,67 @@ const TelegramParser: React.FC = () => {
       toast.success('Скрипт скопирован в буфер обмена!');
     } catch (err) {
       toast.error('Не удалось скопировать скрипт');
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/json') {
+      toast.error('Пожалуйста, выберите JSON файл');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadProgress(10);
+      
+      // Читаем файл
+      const text = await file.text();
+      const participants = JSON.parse(text);
+      
+      if (!Array.isArray(participants)) {
+        throw new Error('Файл должен содержать массив участников');
+      }
+      
+      setUploadProgress(30);
+      toast.info(`Загружено ${participants.length} участников, начинаем обработку...`);
+      
+      // Отправляем на сервер для кластеризации и сохранения
+      const response = await fetch('https://functions.poehali.dev/66267fe8-bc76-4f15-a55a-a89fd93c694c', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ participants })
+      });
+      
+      setUploadProgress(70);
+      
+      if (!response.ok) {
+        throw new Error('Ошибка при обработке данных');
+      }
+      
+      const result = await response.json();
+      setUploadProgress(100);
+      setUploadResult(result);
+      
+      toast.success(`Успешно! Импортировано: ${result.imported}, обновлено: ${result.updated}`);
+      
+      // Перезагружаем страницу через 2 секунды
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Ошибка при загрузке файла: ' + (error as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -300,7 +366,7 @@ const TelegramParser: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button onClick={copyScript} variant="default">
             <Icon name="Copy" size={16} className="mr-2" />
             Скопировать скрипт
@@ -312,7 +378,67 @@ const TelegramParser: React.FC = () => {
             <Icon name={showInstructions ? "ChevronUp" : "ChevronDown"} size={16} className="mr-2" />
             {showInstructions ? 'Скрыть' : 'Показать'} инструкцию
           </Button>
+          
+          <div className="flex items-center gap-2 ml-auto">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="json-upload"
+            />
+            <label htmlFor="json-upload">
+              <Button 
+                variant="outline" 
+                disabled={uploading}
+                className="cursor-pointer"
+                asChild
+              >
+                <span>
+                  <Icon name={uploading ? "Loader2" : "Upload"} size={16} className={uploading ? "mr-2 animate-spin" : "mr-2"} />
+                  {uploading ? 'Обработка...' : 'Загрузить JSON'}
+                </span>
+              </Button>
+            </label>
+          </div>
         </div>
+
+        {uploading && (
+          <div className="space-y-2">
+            <Progress value={uploadProgress} className="h-2" />
+            <p className="text-sm text-muted-foreground">
+              {uploadProgress < 30 && 'Читаем файл...'}
+              {uploadProgress >= 30 && uploadProgress < 70 && 'Анализируем участников с помощью AI...'}
+              {uploadProgress >= 70 && uploadProgress < 100 && 'Сохраняем в базу данных...'}
+              {uploadProgress === 100 && 'Готово!'}
+            </p>
+          </div>
+        )}
+
+        {uploadResult && (
+          <div className="bg-muted p-4 rounded-lg">
+            <h4 className="font-semibold mb-2">✅ Результаты импорта:</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>Новых участников: <span className="font-semibold">{uploadResult.imported}</span></div>
+              <div>Обновлено: <span className="font-semibold">{uploadResult.updated}</span></div>
+              <div>Всего обработано: <span className="font-semibold">{uploadResult.total}</span></div>
+              <div>Создано связей: <span className="font-semibold">{uploadResult.connections_created}</span></div>
+            </div>
+            {uploadResult.clusters && (
+              <div className="mt-3">
+                <p className="text-sm font-medium mb-1">Распределение по кластерам:</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(uploadResult.clusters).map(([cluster, count]) => (
+                    <span key={cluster} className="text-xs bg-background px-2 py-1 rounded">
+                      {cluster}: {count as number}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {showInstructions && (
           <div className="space-y-4 text-sm">

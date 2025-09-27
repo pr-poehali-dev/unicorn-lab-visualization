@@ -1,0 +1,34 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": "",
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Process participants",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "participants": [
+          {
+            "authorId": "test123",
+            "messageLink": "https://t.me/test",
+            "text": "Иван Петров, разработчик в сфере IT"
+          }
+        ]
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "participants": "array",
+        "clusters": "object",
+        "total": "number"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

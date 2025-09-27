@@ -1,4 +1,6 @@
 {
+  "cluster-participants": "https://functions.poehali.dev/3d4c2216-6bc0-4938-a190-88fa6ab1f7e5",
+  "import-with-clustering": "https://functions.poehali.dev/66267fe8-bc76-4f15-a55a-a89fd93c694c",
   "get-participants": "https://functions.poehali.dev/7e57c4aa-6302-4340-8648-d25ebb52312e",
   "import-participants": "https://functions.poehali.dev/eb47b524-75f9-4c36-8ba4-13e4d746f257"
 }
