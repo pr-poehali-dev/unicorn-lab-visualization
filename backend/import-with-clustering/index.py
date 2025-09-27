@@ -2,18 +2,36 @@ import json
 import os
 import psycopg2
 import httpx
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Literal
 from datetime import datetime
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, validator
+
+# Define allowed values
+CLUSTERS = Literal["IT", "Финансы", "Маркетинг", "Производство", "Услуги", "Образование", "Здоровье", "Недвижимость", "Другое"]
+ALLOWED_TAGS = [
+    "AI/ML", "стартапы", "инвестиции", "продажи", "маркетинг", "разработка", 
+    "консалтинг", "производство", "логистика", "финтех", "образование", 
+    "медицина", "e-commerce", "B2B", "B2C", "SaaS", "криптовалюты", 
+    "недвижимость", "HR", "дизайн", "аналитика", "управление проектами", 
+    "автоматизация", "робототехника", "IoT", "блокчейн", "масштабирование",
+    "нетворкинг", "коучинг", "франшизы", "экспорт", "импорт", "ритейл"
+]
 
 # Pydantic models for structured outputs
 class ParsedParticipant(BaseModel):
     """Single parsed participant with clustering"""
     name: str = Field(description="Full name of the participant")
     telegram_id: str = Field(description="Telegram user ID")
-    cluster: str = Field(description="One of: IT, Финансы, Маркетинг, Производство, Услуги, Образование, Здоровье, Недвижимость, Другое")
-    summary: str = Field(description="One paragraph summary (max 2-3 sentences) of person's experience and expertise")
-    tags: List[str] = Field(default_factory=list, description="3-5 relevant tags like: AI, стартапы, инвестиции, продажи, маркетинг, разработка, консалтинг, производство, логистика, финтех, образование, медицина, e-commerce, B2B, SaaS, etc.")
+    cluster: CLUSTERS = Field(description="Select ONE cluster from: IT, Финансы, Маркетинг, Производство, Услуги, Образование, Здоровье, Недвижимость, Другое")
+    summary: str = Field(description="Create a concise 1-2 sentence summary highlighting their main expertise, business/role, and key achievements")
+    tags: List[str] = Field(min_items=3, max_items=5, description=f"Select 3-5 tags from: {', '.join(ALLOWED_TAGS)}")
+    
+    @validator('tags')
+    def validate_tags(cls, v):
+        for tag in v:
+            if tag not in ALLOWED_TAGS:
+                raise ValueError(f"Invalid tag: {tag}")
+        return v
 
 class BatchResponse(BaseModel):
     """Response for batch processing"""
@@ -125,12 +143,19 @@ def process_with_structured_output(participants: List[Dict]) -> List[ParsedParti
                     'messages': [
                         {
                             'role': 'system',
-                            'content': '''Extract participant information from Russian text. 
-Assign clusters: IT, Финансы, Маркетинг, Производство, Услуги, Образование, Здоровье, Недвижимость, Другое.
-Create a brief 1-2 sentence summary of their experience.
-Assign 3-5 relevant tags from: AI/ML, стартапы, инвестиции, продажи, маркетинг, разработка, консалтинг, 
-производство, логистика, финтех, образование, медицина, e-commerce, B2B, B2C, SaaS, криптовалюты, 
-недвижимость, HR, дизайн, аналитика, управление проектами, автоматизация, робототехника, IoT, блокчейн'''
+                            'content': f'''You are analyzing Russian text about entrepreneurs and business professionals.
+
+TASK:
+1. Extract participant information
+2. Assign ONE cluster: IT, Финансы, Маркетинг, Производство, Услуги, Образование, Здоровье, Недвижимость, Другое
+3. Create a concise 1-2 sentence summary in Russian highlighting their expertise, role, and achievements
+4. Select exactly 3-5 tags from this list ONLY: {', '.join(ALLOWED_TAGS)}
+
+IMPORTANT:
+- Summary must be a complete, professional description, not just cut text
+- Use ONLY tags from the provided list
+- Minimum 3 tags per person
+- Focus on their professional activities and expertise'''
                         },
                         {
                             'role': 'user',
@@ -186,6 +211,12 @@ def fallback_process(participants: List[Dict]) -> List[ParsedParticipant]:
             cluster = 'Производство'
         elif any(word in text_lower for word in ['услуг', 'сервис', 'консалт']):
             cluster = 'Услуги'
+        elif any(word in text_lower for word in ['образован', 'обуч', 'курс', 'школ']):
+            cluster = 'Образование'
+        elif any(word in text_lower for word in ['медиц', 'здоров', 'клиник']):
+            cluster = 'Здоровье'
+        elif any(word in text_lower for word in ['недвиж', 'квартир', 'дом', 'аренд']):
+            cluster = 'Недвижимость'
         
         # Extract basic tags based on keywords
         tags = []
@@ -197,12 +228,37 @@ def fallback_process(participants: List[Dict]) -> List[ParsedParticipant]:
             tags.append('инвестиции')
         if any(word in text_lower for word in ['продаж', 'sales']):
             tags.append('продажи')
+        if any(word in text_lower for word in ['маркетинг', 'marketing']):
+            tags.append('маркетинг')
+        if any(word in text_lower for word in ['консалт', 'консульт']):
+            tags.append('консалтинг')
+        if any(word in text_lower for word in ['разработ', 'программ']):
+            tags.append('разработка')
+            
+        # Ensure minimum 3 tags
+        if len(tags) < 3:
+            if cluster == 'IT' and 'разработка' not in tags:
+                tags.append('разработка')
+            if 'консалтинг' not in tags:
+                tags.append('консалтинг')
+            if 'B2B' not in tags:
+                tags.append('B2B')
+        
+        # Create summary
+        text = p.get('text', '')
+        name = p.get('author', 'Unknown')
+        summary = f"{name} - предприниматель в сфере {cluster.lower()}."
+        if len(text) > 50:
+            # Try to extract first meaningful sentence
+            sentences = text.split('.')
+            if sentences and len(sentences[0]) > 20:
+                summary = sentences[0].strip() + '.'
             
         result.append(ParsedParticipant(
-            name=p.get('author', 'Unknown'),
+            name=name,
             telegram_id=p.get('authorId', ''),
             cluster=cluster,
-            summary=p.get('text', '')[:150] + '...' if len(p.get('text', '')) > 150 else p.get('text', ''),
+            summary=summary[:200],  # Limit summary length
             tags=tags[:5]  # Limit to 5 tags
         ))
     
