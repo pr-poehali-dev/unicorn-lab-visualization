@@ -8,17 +8,22 @@ from pydantic import BaseModel, Field, ValidationError
 
 def get_tags_and_clusters_from_db() -> Tuple[List[str], List[str]]:
     """Load tags and clusters from database"""
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    # Parse DATABASE_URL and add schema to options
+    db_url = os.environ['DATABASE_URL']
+    if '?' in db_url:
+        db_url += '&options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
+    else:
+        db_url += '?options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
+    
+    conn = psycopg2.connect(db_url)
     cur = conn.cursor()
     
-    schema = "t_p95295728_unicorn_lab_visualiz"
-    
-    # Get tags
-    cur.execute(f"SELECT name FROM {schema}.tags WHERE category != 'cluster' ORDER BY name")
+    # Get tags - use simple query without schema prefix
+    cur.execute("SELECT name FROM tags WHERE category != 'cluster' ORDER BY name")
     tags = [row[0] for row in cur.fetchall()]
     
     # Get clusters
-    cur.execute(f"SELECT name FROM {schema}.tags WHERE category = 'cluster' ORDER BY name")
+    cur.execute("SELECT name FROM tags WHERE category = 'cluster' ORDER BY name")
     clusters = [row[0] for row in cur.fetchall()]
     
     cur.close()
@@ -219,11 +224,15 @@ IMPORTANT:
 
 def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: List[str], clusters: List[str]) -> Dict[str, Any]:
     """Save to database with clustering and tag relations"""
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor()
+    # Parse DATABASE_URL and add schema to options
+    db_url = os.environ['DATABASE_URL']
+    if '?' in db_url:
+        db_url += '&options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
+    else:
+        db_url += '?options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
     
-    # Schema name
-    schema = "t_p95295728_unicorn_lab_visualiz"
+    conn = psycopg2.connect(db_url)
+    cur = conn.cursor()
     
     imported_count = 0
     updated_count = 0
@@ -231,7 +240,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
     errors = []
     
     # Get tag IDs mapping
-    cur.execute(f"SELECT id, name FROM {schema}.tags")
+    cur.execute("SELECT id, name FROM tags")
     tag_id_map = {name: id for id, name in cur.fetchall()}
     
     # Create lookup for parsed data
@@ -259,7 +268,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
             
             # Check if exists
             cur.execute(
-                f"SELECT id FROM {schema}.entrepreneurs WHERE telegram_id = %s",
+                "SELECT id FROM entrepreneurs WHERE telegram_id = %s",
                 (telegram_id,)
             )
             existing = cur.fetchone()
@@ -267,8 +276,8 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
             if existing:
                 entrepreneur_id = existing[0]
                 # Update existing
-                cur.execute(f"""
-                    UPDATE {schema}.entrepreneurs 
+                cur.execute("""
+                    UPDATE entrepreneurs 
                     SET name = %s, description = %s, post_url = %s, 
                         cluster = %s, goal = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE telegram_id = %s
@@ -284,8 +293,8 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                 updated_count += 1
             else:
                 # Insert new
-                cur.execute(f"""
-                    INSERT INTO {schema}.entrepreneurs (
+                cur.execute("""
+                    INSERT INTO entrepreneurs (
                         telegram_id, name, description, post_url, 
                         cluster, goal, created_at, updated_at
                     ) VALUES (%s, %s, %s, %s, %s, %s, 
@@ -303,14 +312,14 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                 imported_count += 1
             
             # Clear existing tags for this entrepreneur
-            cur.execute(f"DELETE FROM {schema}.entrepreneur_tags WHERE entrepreneur_id = %s", (entrepreneur_id,))
+            cur.execute("DELETE FROM entrepreneur_tags WHERE entrepreneur_id = %s", (entrepreneur_id,))
             
             # Insert new tag relations
             for tag_name in tags:
                 tag_id = tag_id_map.get(tag_name)
                 if tag_id:
-                    cur.execute(f"""
-                        INSERT INTO {schema}.entrepreneur_tags (entrepreneur_id, tag_id)
+                    cur.execute("""
+                        INSERT INTO entrepreneur_tags (entrepreneur_id, tag_id)
                         VALUES (%s, %s)
                         ON CONFLICT (entrepreneur_id, tag_id) DO NOTHING
                     """, (entrepreneur_id, tag_id))

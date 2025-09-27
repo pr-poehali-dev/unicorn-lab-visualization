@@ -37,8 +37,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         search_query = params.get('search', '')
         cluster_filter = params.get('cluster', '')
         
-        # Connect to database
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        # Connect to database with schema
+        db_url = os.environ['DATABASE_URL']
+        if '?' in db_url:
+            db_url += '&options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
+        else:
+            db_url += '?options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
+        
+        conn = psycopg2.connect(db_url)
         cur = conn.cursor()
         
         # Build query
@@ -46,17 +52,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             SELECT e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, 
                    e.description, e.post_url, e.goal, e.created_at, e.updated_at,
                    COALESCE(array_agg(t.name) FILTER (WHERE t.name IS NOT NULL), '{}') as tags
-            FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs e
-            LEFT JOIN t_p95295728_unicorn_lab_visualiz.entrepreneur_tags et ON e.id = et.entrepreneur_id
-            LEFT JOIN t_p95295728_unicorn_lab_visualiz.tags t ON et.tag_id = t.id
+            FROM entrepreneurs e
+            LEFT JOIN entrepreneur_tags et ON e.id = et.entrepreneur_id
+            LEFT JOIN tags t ON et.tag_id = t.id
             WHERE 1=1
         """
         query_params = []
         
         if search_query:
             query += """ AND (LOWER(e.name) LIKE LOWER(%s) OR EXISTS (
-                SELECT 1 FROM t_p95295728_unicorn_lab_visualiz.entrepreneur_tags et2
-                JOIN t_p95295728_unicorn_lab_visualiz.tags t2 ON et2.tag_id = t2.id
+                SELECT 1 FROM entrepreneur_tags et2
+                JOIN tags t2 ON et2.tag_id = t2.id
                 WHERE et2.entrepreneur_id = e.id AND LOWER(t2.name) = LOWER(%s)
             ))"""
             query_params.extend([f'%{search_query}%', search_query])
@@ -93,7 +99,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Get connections
         cur.execute("""
             SELECT source_id, target_id, connection_type, strength
-            FROM t_p95295728_unicorn_lab_visualiz.connections
+            FROM connections
         """)
         connections = []
         for row in cur.fetchall():
