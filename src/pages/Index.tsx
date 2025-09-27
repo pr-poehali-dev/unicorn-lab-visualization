@@ -263,7 +263,9 @@ const Index: React.FC = () => {
           style={{
             left: `${popupPosition.x}px`,
             top: `${popupPosition.y}px`,
-            transform: 'translate(-50%, -100%) translateY(-10px)'
+            transform: popupPosition.y < 400 
+              ? 'translate(-50%, 10px)' // Если нода высоко - показываем попап снизу
+              : 'translate(-50%, -100%) translateY(-10px)' // Если нода низко - показываем попап сверху
           }}
         >
           {/* Заголовок с кнопкой закрытия */}
