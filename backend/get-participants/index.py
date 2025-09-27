@@ -43,7 +43,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Build query
         query = """
-            SELECT id, telegram_id, username, name, role, cluster, description, tags, created_at, updated_at
+            SELECT id, telegram_id, username, name, role, cluster, description, tags, post_url, created_at, updated_at
             FROM entrepreneurs
             WHERE 1=1
         """
@@ -75,8 +75,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'cluster': row[5],
                 'description': row[6],
                 'tags': row[7] or [],
-                'created_at': row[8].isoformat() if row[8] else None,
-                'updated_at': row[9].isoformat() if row[9] else None
+                'post_url': row[8],
+                'created_at': row[9].isoformat() if row[9] else None,
+                'updated_at': row[10].isoformat() if row[10] else None
             })
         
         # Get connections

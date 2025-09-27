@@ -305,13 +305,26 @@ const Index: React.FC = () => {
           
           {/* Теги */}
           {selectedParticipant.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 mb-3">
               {selectedParticipant.tags.map(tag => (
                 <Badge key={tag} variant="secondary" className="text-xs">
                   {tag}
                 </Badge>
               ))}
             </div>
+          )}
+          
+          {/* Кнопка перехода на пост */}
+          {selectedParticipant.postUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => window.open(selectedParticipant.postUrl, '_blank')}
+            >
+              <Icon name="ExternalLink" size={14} className="mr-2" />
+              Открыть пост в Telegram
+            </Button>
           )}
         </div>
       )}

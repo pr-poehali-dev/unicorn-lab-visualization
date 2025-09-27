@@ -62,11 +62,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 cluster = participant.get('cluster', 'Other')
                 description = participant.get('description', '')
                 tags = participant.get('tags', [])
+                post_url = participant.get('post_url')
                 
                 # Check if participant already exists
                 cur.execute(
-                    "SELECT id FROM entrepreneurs WHERE telegram_id = %s",
-                    (telegram_id,)
+                    "SELECT id FROM entrepreneurs WHERE telegram_id = %s OR post_url = %s",
+                    (telegram_id, post_url)
                 )
                 existing = cur.fetchone()
                 
@@ -76,17 +77,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         UPDATE entrepreneurs 
                         SET username = %s, name = %s, role = %s, 
                             cluster = %s, description = %s, tags = %s,
-                            updated_at = CURRENT_TIMESTAMP
-                        WHERE telegram_id = %s
-                    """, (username, name, role, cluster, description, tags, telegram_id))
+                            post_url = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE telegram_id = %s OR post_url = %s
+                    """, (username, name, role, cluster, description, tags, post_url, telegram_id, post_url))
                     updated_count += 1
                 else:
                     # Insert new participant
                     cur.execute("""
                         INSERT INTO entrepreneurs 
-                        (telegram_id, username, name, role, cluster, description, tags)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """, (telegram_id, username, name, role, cluster, description, tags))
+                        (telegram_id, username, name, role, cluster, description, tags, post_url)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (telegram_id, username, name, role, cluster, description, tags, post_url))
                     imported_count += 1
                     
             except Exception as e:

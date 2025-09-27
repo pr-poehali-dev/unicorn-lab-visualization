@@ -15,6 +15,7 @@ export interface ParticipantsResponse {
     cluster: string;
     description: string;
     tags: string[];
+    post_url: string | null;
     created_at: string;
     updated_at: string;
   }>;
@@ -73,6 +74,7 @@ export class ApiService {
       description: p.description,
       tags: p.tags,
       cluster: p.cluster,
+      postUrl: p.post_url || undefined,
       position: { x: 0, y: 0 } // Позиции будут рассчитываться в ForceGraph
     }));
 

@@ -9,6 +9,8 @@ export interface Entrepreneur {
     x: number;
     y: number;
   };
+  role?: string;
+  postUrl?: string;
 }
 
 export interface GraphEdge {
