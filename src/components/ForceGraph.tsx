@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { ForceGraphProps } from './force-graph/types';
 import { useSimulation } from './force-graph/useSimulation';
 import { useGraphInteractions } from './force-graph/useGraphInteractions';
@@ -20,9 +20,9 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
 
   const dimensions = useCanvasResize({ containerRef, canvasRef, simulationRef: tempSimulationRef });
 
-  // Сначала определяем временные переменные для циклических зависимостей
-  let hoveredNode: string | null = null;
-  let draggedNode: any = null;
+  // Состояния для интерактивности (временно определяем для useCallback)
+  const [hoveredNodeState, setHoveredNodeState] = useState<string | null>(null);
+  const [draggedNodeState, setDraggedNodeState] = useState<any>(null);
 
   const drawGraph = useCallback(() => {
     const canvas = canvasRef.current;
@@ -39,10 +39,10 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       simulationRef: tempSimulationRef,
       selectedCluster,
       clusterColors,
-      hoveredNode,
-      draggedNode
+      hoveredNode: hoveredNodeState,
+      draggedNode: draggedNodeState
     });
-  }, [dimensions, edges, selectedCluster, clusterColors, hoveredNode, draggedNode]);
+  }, [dimensions, edges, selectedCluster, clusterColors, hoveredNodeState, draggedNodeState]);
 
   const onTick = useCallback(() => {
     if (animationFrameRef.current) {
@@ -75,9 +75,14 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     onNodeClick
   });
 
-  // Присваиваем реальные значения
-  hoveredNode = interactions.hoveredNode;
-  draggedNode = interactions.draggedNode;
+  // Синхронизируем состояния из хука взаимодействий
+  useEffect(() => {
+    setHoveredNodeState(interactions.hoveredNode);
+  }, [interactions.hoveredNode]);
+
+  useEffect(() => {
+    setDraggedNodeState(interactions.draggedNode);
+  }, [interactions.draggedNode]);
 
   // Expose метод через ref
   React.useImperativeHandle(ref, () => ({
