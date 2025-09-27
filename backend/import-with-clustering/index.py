@@ -11,11 +11,9 @@ class ParsedParticipant(BaseModel):
     """Single parsed participant with clustering"""
     name: str = Field(description="Full name of the participant")
     telegram_id: str = Field(description="Telegram user ID")
-    cluster: str = Field(description="One of: IT, Финансы, Маркетинг, Производство, Услуги, Другое")
-    city: Optional[str] = Field(None, description="City if mentioned")
-    tags: List[str] = Field(default_factory=list, description="List of relevant tags")
-    experience: Optional[str] = Field(None, description="Brief experience summary")
-    contacts: Optional[str] = Field(None, description="Contact information if provided")
+    cluster: str = Field(description="One of: IT, Финансы, Маркетинг, Производство, Услуги, Образование, Здоровье, Недвижимость, Другое")
+    summary: str = Field(description="One paragraph summary (max 2-3 sentences) of person's experience and expertise")
+    tags: List[str] = Field(default_factory=list, description="3-5 relevant tags like: AI, стартапы, инвестиции, продажи, маркетинг, разработка, консалтинг, производство, логистика, финтех, образование, медицина, e-commerce, B2B, SaaS, etc.")
 
 class BatchResponse(BaseModel):
     """Response for batch processing"""
@@ -127,7 +125,12 @@ def process_with_structured_output(participants: List[Dict]) -> List[ParsedParti
                     'messages': [
                         {
                             'role': 'system',
-                            'content': 'Extract participant information and assign to clusters: IT, Финансы, Маркетинг, Производство, Услуги, Другое'
+                            'content': '''Extract participant information from Russian text. 
+Assign clusters: IT, Финансы, Маркетинг, Производство, Услуги, Образование, Здоровье, Недвижимость, Другое.
+Create a brief 1-2 sentence summary of their experience.
+Assign 3-5 relevant tags from: AI/ML, стартапы, инвестиции, продажи, маркетинг, разработка, консалтинг, 
+производство, логистика, финтех, образование, медицина, e-commerce, B2B, B2C, SaaS, криптовалюты, 
+недвижимость, HR, дизайн, аналитика, управление проектами, автоматизация, робототехника, IoT, блокчейн'''
                         },
                         {
                             'role': 'user',
@@ -184,14 +187,23 @@ def fallback_process(participants: List[Dict]) -> List[ParsedParticipant]:
         elif any(word in text_lower for word in ['услуг', 'сервис', 'консалт']):
             cluster = 'Услуги'
         
+        # Extract basic tags based on keywords
+        tags = []
+        if any(word in text_lower for word in ['стартап', 'startup', 'основатель']):
+            tags.append('стартапы')
+        if any(word in text_lower for word in ['ai', 'ml', 'искусственный интеллект']):
+            tags.append('AI/ML')
+        if any(word in text_lower for word in ['инвест', 'инвестор']):
+            tags.append('инвестиции')
+        if any(word in text_lower for word in ['продаж', 'sales']):
+            tags.append('продажи')
+            
         result.append(ParsedParticipant(
             name=p.get('author', 'Unknown'),
             telegram_id=p.get('authorId', ''),
             cluster=cluster,
-            city=None,
-            tags=[],
-            experience=None,
-            contacts=None
+            summary=p.get('text', '')[:150] + '...' if len(p.get('text', '')) > 150 else p.get('text', ''),
+            tags=tags[:5]  # Limit to 5 tags
         ))
     
     return result
@@ -224,9 +236,11 @@ def save_to_database(parsed: List[ParsedParticipant], original: List[Dict]) -> D
             if parsed_data:
                 cluster = parsed_data.cluster
                 tags = parsed_data.tags
+                summary = parsed_data.summary
             else:
                 cluster = 'Другое'
                 tags = []
+                summary = participant.get('text', '')[:200]  # First 200 chars as fallback
             
             # Count clusters
             clusters[cluster] = clusters.get(cluster, 0) + 1
@@ -247,7 +261,7 @@ def save_to_database(parsed: List[ParsedParticipant], original: List[Dict]) -> D
                     WHERE telegram_id = %s
                 """, (
                     participant.get('author', 'Unknown'),
-                    participant.get('text', ''),
+                    summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
                     cluster,
                     tags,
@@ -265,7 +279,7 @@ def save_to_database(parsed: List[ParsedParticipant], original: List[Dict]) -> D
                 """, (
                     telegram_id,
                     participant.get('author', 'Unknown'),
-                    participant.get('text', ''),
+                    summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
                     cluster,
                     tags
