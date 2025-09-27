@@ -332,7 +332,7 @@ const Index: React.FC = () => {
               onClick={() => window.open(selectedParticipant.postUrl, '_blank')}
             >
               <Icon name="MessageCircle" size={14} className="mr-2" />
-              Познакомиться в Телеграм
+              Познакомиться в UNICORN LAB
             </Button>
           )}
         </div>
