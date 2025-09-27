@@ -87,13 +87,14 @@ export class GraphRenderer {
 
     // Свечение для активного узла
     if (isHovered || isDragged) {
-      const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeSize * 2);
+      const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeSize * 2.5);
       const color = clusterColors[node.data.cluster] || '#ea580c';
-      glow.addColorStop(0, color + '33');
+      glow.addColorStop(0, color + '40');
+      glow.addColorStop(0.5, color + '20');
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(node.x, node.y, nodeSize * 2, 0, Math.PI * 2);
+      ctx.arc(node.x, node.y, nodeSize * 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -140,10 +141,13 @@ export class GraphRenderer {
 
     // Топ-3 тега при наведении
     if ((isHovered || isDragged) && node.data.tags.length > 0) {
+      // Сохраняем состояние контекста
+      ctx.save();
+      
       const topTags = node.data.tags.slice(0, 3);
       
       topTags.forEach((tag, index) => {
-        const tagY = node.y + nodeSize + 40 + (index * 25);
+        const tagY = node.y + nodeSize + 35 + (index * 22);
         
         // Устанавливаем единый шрифт как у имени
         ctx.font = '12px Inter';
@@ -185,6 +189,9 @@ export class GraphRenderer {
         ctx.lineWidth = 0;
         ctx.fillText(tag, node.x, tagY);
       });
+      
+      // Восстанавливаем состояние контекста
+      ctx.restore();
     }
   }
 

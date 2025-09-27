@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { SimulationNode, NodePosition } from './types';
 import { Entrepreneur } from '@/types/entrepreneur';
 
@@ -22,6 +22,7 @@ export function useNodeInteractions({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<SimulationNode | null>(null);
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
 
   const getNodeAtPosition = useCallback((x: number, y: number): SimulationNode | null => {
     // Получаем узлы напрямую из симуляции
@@ -35,7 +36,7 @@ export function useNodeInteractions({
 
     return visibleNodes.find(node => {
       const distance = Math.sqrt(Math.pow(node.x - x, 2) + Math.pow(node.y - y, 2));
-      return distance < 45;
+      return distance <= 40; // Точно соответствует размеру узла
     }) || null;
   }, [selectedCluster, simulationRef]);
 
@@ -75,8 +76,23 @@ export function useNodeInteractions({
       simulationRef.current?.alpha(0.3).restart();
     } else {
       const node = getNodeAtPosition(x, y);
-      setHoveredNode(node?.id || null);
-      canvas.style.cursor = node ? 'pointer' : 'grab';
+      
+      // Используем небольшую задержку для стабилизации hover состояния
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+      
+      if (node) {
+        // Если навели на узел, показываем теги сразу
+        setHoveredNode(node.id);
+        canvas.style.cursor = 'pointer';
+      } else {
+        // Если убрали курсор с узла, скрываем теги с небольшой задержкой
+        hoverTimeoutRef.current = window.setTimeout(() => {
+          setHoveredNode(null);
+        }, 100);
+        canvas.style.cursor = 'grab';
+      }
     }
   }, [draggedNode, getNodeAtPosition, canvasRef, simulationRef]);
 
@@ -135,6 +151,15 @@ export function useNodeInteractions({
       simulationRef.current?.alphaTarget(0).restart();
     }
   }, [draggedNode, nodePositionsRef, simulationRef]);
+
+  // Очищаем таймер при размонтировании
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     hoveredNode,
