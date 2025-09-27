@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { ForceGraphProps } from './force-graph/types';
 import { SimulationNode, NodePosition } from './force-graph/types';
 import { GraphRenderer } from './force-graph/GraphRenderer';
@@ -19,6 +19,11 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   const nodesRef = useRef<SimulationNode[]>([]);
   const animationFrameRef = useRef<number | null>(null);
   const nodePositionsRef = useRef<Map<string, NodePosition>>(new Map());
+  const simulationRef = useRef<any>(null);
+
+  // Состояния для хранения hoveredNode и draggedNode
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [draggedNode, setDraggedNode] = useState<SimulationNode | null>(null);
 
   // Хук для управления размерами canvas
   const dimensions = useCanvasResize({ containerRef, canvasRef, simulationRef });
@@ -38,14 +43,14 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       edges,
       selectedCluster,
       clusterColors,
-      hoveredNode: interactions.hoveredNode,
-      draggedNode: interactions.draggedNode,
+      hoveredNode,
+      draggedNode,
       simulationRef
     });
-  }, [selectedCluster, dimensions, edges, clusterColors]);
+  }, [selectedCluster, dimensions, edges, clusterColors, hoveredNode, draggedNode]);
 
   // Хук для управления симуляцией
-  const simulationRef = useSimulation({
+  useSimulation({
     nodes,
     edges,
     dimensions,
@@ -65,10 +70,14 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     onNodeClick
   });
 
-  // Перерисовка при изменении hoveredNode или draggedNode
+  // Синхронизация состояний из хука взаимодействий
   useEffect(() => {
-    drawGraph();
-  }, [interactions.hoveredNode, interactions.draggedNode, drawGraph]);
+    setHoveredNode(interactions.hoveredNode);
+  }, [interactions.hoveredNode]);
+
+  useEffect(() => {
+    setDraggedNode(interactions.draggedNode);
+  }, [interactions.draggedNode]);
 
   // Метод для сброса всех фиксированных позиций
   const resetNodePositions = useCallback(() => {
@@ -87,7 +96,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
         .alpha(1) // Полная энергия для полного перестроения
         .restart();
     }
-  }, [simulationRef]);
+  }, []);
 
   // Expose метод через ref
   React.useImperativeHandle(ref, () => ({
