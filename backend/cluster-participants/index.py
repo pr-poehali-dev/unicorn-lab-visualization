@@ -153,12 +153,11 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
                 'Content-Type': 'application/json'
             },
             json={
-                'model': 'gpt-4o-2024-08-06',  # Latest GPT-4o model
+                'model': 'gpt-5-2025-08-07',  # GPT-5 model as requested
                 'messages': [
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt}
                 ],
-                'temperature': 0.3,
                 'response_format': {'type': 'json_object'}
             },
             timeout=30.0
