@@ -22,7 +22,7 @@ export function useNodeInteractions({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<SimulationNode | null>(null);
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
-  const hoverTimeoutRef = useRef<number | null>(null);
+  const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const getNodeAtPosition = useCallback((x: number, y: number): SimulationNode | null => {
     // Получаем узлы напрямую из симуляции
@@ -39,6 +39,18 @@ export function useNodeInteractions({
       return distance <= 40; // Точно соответствует размеру узла
     }) || null;
   }, [selectedCluster, simulationRef]);
+
+  // Функция проверки hover состояния
+  const checkHoverState = useCallback(() => {
+    if (!canvasRef.current || draggedNode) return;
+    
+    const { x, y } = lastMousePosRef.current;
+    const node = getNodeAtPosition(x, y);
+    
+    if (node?.id !== hoveredNode) {
+      setHoveredNode(node?.id || null);
+    }
+  }, [getNodeAtPosition, hoveredNode, draggedNode, canvasRef]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const canvas = canvasRef.current;
@@ -66,6 +78,9 @@ export function useNodeInteractions({
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    
+    // Сохраняем последнюю позицию мыши
+    lastMousePosRef.current = { x, y };
 
     if (draggedNode) {
       // Обновляем позицию узла напрямую
@@ -75,34 +90,15 @@ export function useNodeInteractions({
       draggedNode.fy = y;
       simulationRef.current?.alpha(0.3).restart();
     } else {
+      // Проверяем hover состояние
       const node = getNodeAtPosition(x, y);
+      const newHoveredId = node?.id || null;
       
-      // Очищаем предыдущий таймер
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-        hoverTimeoutRef.current = null;
+      if (newHoveredId !== hoveredNode) {
+        setHoveredNode(newHoveredId);
       }
       
-      const currentNodeId = node?.id || null;
-      
-      // Если изменился узел под курсором
-      if (currentNodeId !== hoveredNode) {
-        if (node) {
-          // Навели на новый узел - показываем теги сразу
-          setHoveredNode(node.id);
-          canvas.style.cursor = 'pointer';
-        } else {
-          // Убрали курсор с узла - скрываем теги сразу
-          setHoveredNode(null);
-          canvas.style.cursor = 'grab';
-        }
-      } else if (node) {
-        // Курсор все еще над тем же узлом
-        canvas.style.cursor = 'pointer';
-      } else {
-        // Курсор не над узлом
-        canvas.style.cursor = 'grab';
-      }
+      canvas.style.cursor = node ? 'pointer' : 'grab';
     }
   }, [draggedNode, getNodeAtPosition, canvasRef, simulationRef, hoveredNode]);
 
@@ -142,18 +138,18 @@ export function useNodeInteractions({
       dragStartPosRef.current = null;
       // Важно: alpha(0) останавливает симуляцию, сохраняя фиксированные позиции
       simulationRef.current?.alphaTarget(0).restart();
+      
+      // После завершения перетаскивания проверяем hover состояние
+      setTimeout(checkHoverState, 10);
     }
-  }, [draggedNode, onNodeClick, canvasRef, simulationRef, nodePositionsRef]);
+  }, [draggedNode, onNodeClick, canvasRef, simulationRef, nodePositionsRef, checkHoverState]);
 
   const handleMouseLeave = useCallback(() => {
     // Всегда сбрасываем hoveredNode при выходе из canvas
     setHoveredNode(null);
     
-    // Очищаем любые активные таймеры
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
+    // Сбрасываем позицию мыши
+    lastMousePosRef.current = { x: -100, y: -100 };
     
     if (draggedNode) {
       // При выходе за пределы canvas сохраняем позицию
@@ -168,16 +164,23 @@ export function useNodeInteractions({
       dragStartPosRef.current = null;
       simulationRef.current?.alphaTarget(0).restart();
     }
-  }, [draggedNode, nodePositionsRef, simulationRef]);
+    
+    // Сбрасываем курсор
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = 'grab';
+    }
+  }, [draggedNode, nodePositionsRef, simulationRef, canvasRef]);
 
-  // Очищаем таймер при размонтировании
+  // Периодическая проверка hover состояния для надежности
   useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
+    const interval = setInterval(() => {
+      if (!draggedNode && canvasRef.current) {
+        checkHoverState();
       }
-    };
-  }, []);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [checkHoverState, draggedNode, canvasRef]);
 
   return {
     hoveredNode,
