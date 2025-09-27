@@ -85,8 +85,18 @@ export function useSimulation({
       simulationRef.current.alpha(0.3).restart();
       // Форсируем несколько тиков для обновления позиций
       simulationRef.current.tick(5);
-      // Принудительно вызываем отрисовку
+      
+      console.log('useSimulation: узлы обновлены', {
+        nodesCount: simNodes.length,
+        edgesCount: validEdges.length
+      });
+      
+      // Принудительно вызываем отрисовку несколько раз
       onTickRef.current();
+      setTimeout(() => onTickRef.current(), 50);
+      setTimeout(() => onTickRef.current(), 100);
+      setTimeout(() => onTickRef.current(), 200);
+      
       return;
     }
     

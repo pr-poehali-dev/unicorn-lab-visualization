@@ -71,6 +71,12 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     if (!ctx) return;
 
     const simNodes = simulationRef.current ? simulationRef.current.nodes() : nodesRef.current;
+    
+    console.log('ForceGraph.drawGraph вызван', {
+      simNodesCount: simNodes.length,
+      selectedCluster,
+      nodesCount: nodes.length
+    });
 
     GraphRenderer.draw({
       ctx,
@@ -114,11 +120,34 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   
   // Форсируем перерисовку при изменении фильтров
   useEffect(() => {
+    console.log('ForceGraph: фильтр изменился', {
+      selectedCluster,
+      nodesCount: nodes.length,
+      edgesCount: edges.length
+    });
+    
+    // Очищаем канвас полностью
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Принудительно очищаем весь канвас
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Сбрасываем состояние hover
+    setHoveredNodeId(null);
+    
     // Небольшая задержка чтобы дать симуляции обновиться
     const timeoutId = setTimeout(() => {
+      console.log('ForceGraph: запускаем перерисовку');
       drawGraph();
       // Дополнительная перерисовка через короткий промежуток
-      setTimeout(drawGraph, 100);
+      setTimeout(() => {
+        console.log('ForceGraph: повторная перерисовка');
+        drawGraph();
+      }, 100);
     }, 10);
     
     return () => clearTimeout(timeoutId);
