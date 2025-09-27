@@ -202,6 +202,9 @@ def save_to_database(parsed: List[ParsedParticipant], original: List[Dict]) -> D
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     
+    # Schema name
+    schema = "t_p95295728_unicorn_lab_visualiz"
+    
     imported_count = 0
     updated_count = 0
     clusters = {}
@@ -230,53 +233,42 @@ def save_to_database(parsed: List[ParsedParticipant], original: List[Dict]) -> D
             
             # Check if exists
             cur.execute(
-                "SELECT id FROM participants WHERE telegram_id = %s",
+                f"SELECT id FROM {schema}.entrepreneurs WHERE telegram_id = %s",
                 (telegram_id,)
             )
             existing = cur.fetchone()
             
             if existing:
                 # Update existing
-                cur.execute("""
-                    UPDATE participants 
-                    SET name = %s, avatar_url = %s, message_text = %s, 
-                        message_link = %s, cluster = %s, tags = %s,
-                        is_forwarded = %s, is_own = %s, is_unknown = %s,
-                        updated_at = CURRENT_TIMESTAMP
+                cur.execute(f"""
+                    UPDATE {schema}.entrepreneurs 
+                    SET name = %s, description = %s, post_url = %s, 
+                        cluster = %s, tags = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE telegram_id = %s
                 """, (
                     participant.get('author', 'Unknown'),
-                    participant.get('avatarUrl', ''),
                     participant.get('text', ''),
                     participant.get('messageLink', ''),
                     cluster,
                     tags,
-                    participant.get('isForwarded', False),
-                    participant.get('isOwn', False),
-                    participant.get('isUnknown', False),
                     telegram_id
                 ))
                 updated_count += 1
             else:
                 # Insert new
-                cur.execute("""
-                    INSERT INTO participants (
-                        telegram_id, name, avatar_url, message_text, 
-                        message_link, cluster, tags, is_forwarded, 
-                        is_own, is_unknown, created_at, updated_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+                cur.execute(f"""
+                    INSERT INTO {schema}.entrepreneurs (
+                        telegram_id, name, description, post_url, 
+                        cluster, tags, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, 
                             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """, (
                     telegram_id,
                     participant.get('author', 'Unknown'),
-                    participant.get('avatarUrl', ''),
                     participant.get('text', ''),
                     participant.get('messageLink', ''),
                     cluster,
-                    tags,
-                    participant.get('isForwarded', False),
-                    participant.get('isOwn', False),
-                    participant.get('isUnknown', False)
+                    tags
                 ))
                 imported_count += 1
                 
