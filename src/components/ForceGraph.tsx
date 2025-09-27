@@ -25,7 +25,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   const [draggedNode, setDraggedNode] = useState<SimulationNode | null>(null);
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const isMouseInsideRef = useRef(false);
-  const currentMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Хук для управления размерами canvas
   const dimensions = useCanvasResize({ containerRef, canvasRef, simulationRef });
@@ -126,7 +126,9 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    currentMousePosRef.current = { x, y };
+    // Всегда сохраняем текущие координаты мыши
+    mousePosRef.current = { x, y };
+    // Убедимся, что флаг установлен
     isMouseInsideRef.current = true;
 
     if (draggedNode) {
@@ -143,7 +145,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
         setHoveredNodeId(nodeId);
       }
     }
-  }, [draggedNode, getNodeAtPosition, updateHoverState]);
+  }, [draggedNode, getNodeAtPosition, hoveredNodeId]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (draggedNode && dragStartPosRef.current) {
@@ -178,8 +180,21 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     }
   }, [draggedNode, onNodeClick]);
 
-  const handleMouseLeave = useCallback(() => {
+  const handleMouseLeave = useCallback((e: React.MouseEvent) => {
+    // Проверяем, действительно ли мышь покинула область
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Если мышь все еще внутри области, игнорируем событие
+    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+      return;
+    }
+    
     isMouseInsideRef.current = false;
+    // Важно: сбрасываем позицию мыши
+    mousePosRef.current = { x: -1, y: -1 };
+    // Гарантированно сбрасываем hover
     setHoveredNodeId(null);
     
     if (draggedNode) {
@@ -194,24 +209,41 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       dragStartPosRef.current = null;
       simulationRef.current?.alphaTarget(0).restart();
     }
-    
-    if (canvasRef.current) {
-      canvasRef.current.style.cursor = 'grab';
-    }
   }, [draggedNode]);
 
-  const handleMouseEnter = useCallback(() => {
+  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
     isMouseInsideRef.current = true;
+    // Сразу обновляем позицию мыши при входе
+    const rect = e.currentTarget.getBoundingClientRect();
+    mousePosRef.current = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
   }, []);
 
-  // Используем requestAnimationFrame для более плавной проверки hover
+  // Проверяем hover состояние когда мышь внутри области
   useEffect(() => {
     let rafId: number;
     
     const checkHover = () => {
+      // Проверяем только если мышь внутри и не перетаскиваем узел
       if (isMouseInsideRef.current && !draggedNode) {
-        updateHoverState();
+        const { x, y } = mousePosRef.current;
+        // Проверяем только если координаты валидны
+        if (x >= 0 && y >= 0) {
+          const node = getNodeAtPosition(x, y);
+          const nodeId = node?.id || null;
+          
+          // Обновляем только если изменилось
+          if (nodeId !== hoveredNodeId) {
+            setHoveredNodeId(nodeId);
+          }
+        }
+      } else if (!isMouseInsideRef.current && hoveredNodeId) {
+        // Если мышь вне области, но hover еще активен - сбрасываем
+        setHoveredNodeId(null);
       }
+      
       rafId = requestAnimationFrame(checkHover);
     };
     
@@ -222,7 +254,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
         cancelAnimationFrame(rafId);
       }
     };
-  }, [updateHoverState, draggedNode]);
+  }, [hoveredNodeId, draggedNode, getNodeAtPosition]);
 
   // Метод для сброса всех фиксированных позиций
   const resetNodePositions = useCallback(() => {
