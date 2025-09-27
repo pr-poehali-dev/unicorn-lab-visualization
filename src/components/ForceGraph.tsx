@@ -200,25 +200,24 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-        
-        const distance = Math.sqrt(
-          Math.pow(dragStartPosRef.current.x - x, 2) + 
-          Math.pow(dragStartPosRef.current.y - y, 2)
-        );
-        
-        if (distance < 5) {
-          // Преобразуем обратно в экранные координаты для попапа
-          const globalX = rect.left + draggedNode.x * zoom + pan.x;
-          const globalY = rect.top + draggedNode.y * zoom + pan.y;
-          onNodeClick(draggedNode.data, { x: globalX, y: globalY });
-        } else {
-          nodePositionsRef.current.set(draggedNode.id, { 
-            x: draggedNode.x, 
-            y: draggedNode.y,
-            fx: draggedNode.fx,
-            fy: draggedNode.fy
-          });
-        }
+      
+      const distance = Math.sqrt(
+        Math.pow(dragStartPosRef.current.x - x, 2) + 
+        Math.pow(dragStartPosRef.current.y - y, 2)
+      );
+      
+      if (distance < 5) {
+        // Преобразуем обратно в экранные координаты для попапа
+        const globalX = rect.left + draggedNode.x * zoom + pan.x;
+        const globalY = rect.top + draggedNode.y * zoom + pan.y;
+        onNodeClick(draggedNode.data, { x: globalX, y: globalY });
+      } else {
+        nodePositionsRef.current.set(draggedNode.id, { 
+          x: draggedNode.x, 
+          y: draggedNode.y,
+          fx: draggedNode.fx,
+          fy: draggedNode.fy
+        });
       }
 
       setDraggedNode(null);
