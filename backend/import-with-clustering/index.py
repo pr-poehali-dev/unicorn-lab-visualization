@@ -212,6 +212,10 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
 
 TASK:
 1. Extract participant information in Russian
+   - If name is not provided in metadata, try to extract it from the text
+   - Look for patterns like "Меня зовут...", "Я - [имя]", signatures at the end
+   - Prefer Russian names over English when both are available
+   - Keep original capitalization and format
 2. Assign ONE cluster from this list: {', '.join(clusters)}
 3. Create a 1-2 sentence summary in Russian highlighting their expertise and achievements
 4. Extract their main GOAL - what they want to achieve or find (1 sentence in Russian)
@@ -339,7 +343,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                     WHERE telegram_id = %s
                     RETURNING id
                 """, (
-                    participant.get('author', 'Unknown'),
+                    parsed_data.get('name', participant.get('author', 'Unknown')),  # Use AI-extracted name
                     summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
                     cluster,
@@ -359,7 +363,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                     RETURNING id
                 """, (
                     telegram_id,
-                    participant.get('author', 'Unknown'),
+                    parsed_data.get('name', participant.get('author', 'Unknown')),  # Use AI-extracted name
                     summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
                     cluster,

@@ -68,19 +68,24 @@ export class ApiService {
   }
 
   static transformToEntrepreneurs(data: ParticipantsResponse): { entrepreneurs: Entrepreneur[], edges: GraphEdge[] } {
-    const entrepreneurs: Entrepreneur[] = data.participants.map(p => ({
-      id: p.telegram_id || p.id.toString(),
-      name: p.name,
-      avatar: '👤',
-      role: p.role,
-      description: p.description,
-      tags: p.tags,
-      cluster: p.cluster,
-      postUrl: p.post_url || undefined,
-      goal: p.goal || undefined,
-      emoji: p.emoji || '😊',
-      position: { x: 0, y: 0 } // Позиции будут рассчитываться в ForceGraph
-    }));
+    const entrepreneurs: Entrepreneur[] = data.participants.map(p => {
+      // Debug: log emoji data
+      console.log(`Participant ${p.name}: emoji="${p.emoji}"`);
+      
+      return {
+        id: p.telegram_id || p.id.toString(),
+        name: p.name,
+        avatar: '👤',
+        role: p.role,
+        description: p.description,
+        tags: p.tags,
+        cluster: p.cluster,
+        postUrl: p.post_url || undefined,
+        goal: p.goal || undefined,
+        emoji: p.emoji || '😊',
+        position: { x: 0, y: 0 } // Позиции будут рассчитываться в ForceGraph
+      };
+    });
 
     const idMap = new Map<number, string>();
     data.participants.forEach(p => {
