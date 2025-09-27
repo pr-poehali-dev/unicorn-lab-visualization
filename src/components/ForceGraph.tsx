@@ -86,17 +86,17 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
 
   // Метод для сброса всех фиксированных позиций
   const resetNodePositions = useCallback(() => {
-    const simNodes = nodesRef.current;
-    simNodes.forEach(node => {
-      node.fx = null;
-      node.fy = null;
-    });
-    
-    // Очищаем сохраненные позиции
-    nodePositionsRef.current.clear();
-    
-    // Перезапускаем симуляцию с большей энергией для перестроения графа
     if (simulationRef.current) {
+      const simNodes = simulationRef.current.nodes();
+      simNodes.forEach(node => {
+        node.fx = null;
+        node.fy = null;
+      });
+      
+      // Очищаем сохраненные позиции
+      nodePositionsRef.current.clear();
+      
+      // Перезапускаем симуляцию с большей энергией для перестроения графа
       simulationRef.current
         .alpha(1) // Полная энергия для полного перестроения
         .restart();

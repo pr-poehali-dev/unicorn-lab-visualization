@@ -21,10 +21,65 @@ export function useSimulation({
   const simulationRef = useRef<d3.Simulation<SimulationNode, undefined> | null>(null);
   const nodesRef = useRef<SimulationNode[]>([]);
   const animationFrameRef = useRef<number | null>(null);
+  const onTickRef = useRef(onTick);
+  
+  // Обновляем ref при изменении onTick
+  useEffect(() => {
+    onTickRef.current = onTick;
+  }, [onTick]);
 
   // Инициализация симуляции
   useEffect(() => {
-    // Преобразование узлов для симуляции с сохранением позиций
+    // Если симуляция уже существует, обновляем узлы
+    if (simulationRef.current && nodesRef.current.length > 0) {
+      const existingNodesMap = new Map(nodesRef.current.map(n => [n.id, n]));
+      
+      // Обновляем существующие узлы или создаем новые
+      const simNodes: SimulationNode[] = nodes.map(node => {
+        const existingNode = existingNodesMap.get(node.id);
+        if (existingNode) {
+          // Обновляем только data, сохраняя позиции и фиксации
+          existingNode.data = node;
+          return existingNode;
+        } else {
+          // Создаем новый узел
+          const savedPos = nodePositionsRef.current.get(node.id);
+          const newNode: SimulationNode = {
+            id: node.id,
+            x: savedPos ? savedPos.x : Math.random() * dimensions.width,
+            y: savedPos ? savedPos.y : Math.random() * dimensions.height,
+            data: node
+          };
+          
+          if (savedPos?.fx !== null && savedPos?.fx !== undefined) {
+            newNode.fx = savedPos.fx;
+          }
+          if (savedPos?.fy !== null && savedPos?.fy !== undefined) {
+            newNode.fy = savedPos.fy;
+          }
+          
+          return newNode;
+        }
+      });
+      
+      nodesRef.current = simNodes;
+      
+      // Обновляем узлы в симуляции
+      simulationRef.current.nodes(simNodes);
+      
+      // Обновляем связи
+      const simEdges = edges.map(e => ({ ...e }));
+      const linkForce = simulationRef.current.force('link') as any;
+      if (linkForce) {
+        linkForce.links(simEdges);
+      }
+      
+      // Перезапускаем симуляцию с минимальной энергией
+      simulationRef.current.alpha(0.3).restart();
+      return;
+    }
+    
+    // Создание новой симуляции
     const simNodes: SimulationNode[] = nodes.map(node => {
       const savedPos = nodePositionsRef.current.get(node.id);
       const newNode: SimulationNode = {
@@ -86,7 +141,7 @@ export function useSimulation({
         cancelAnimationFrame(animationFrameRef.current);
       }
       animationFrameRef.current = requestAnimationFrame(() => {
-        onTick();
+        onTickRef.current();
       });
     });
 
@@ -96,7 +151,7 @@ export function useSimulation({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [nodes, edges, dimensions, nodePositionsRef, onTick]);
+  }, [nodes, edges, dimensions]); // Убираем onTick из зависимостей
 
   // Метод для сброса всех фиксированных позиций
   const resetNodePositions = useCallback(() => {
