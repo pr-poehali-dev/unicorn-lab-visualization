@@ -1,7 +1,5 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import ForceGraph from '@/components/ForceGraph';
-import Popover from '@/components/Popover';
-
 import { Entrepreneur, GraphEdge } from '@/types/entrepreneur';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +18,6 @@ const Index: React.FC = () => {
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
   const [showClusterDropdown, setShowClusterDropdown] = useState(false);
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
-  const [tagsButtonRef, setTagsButtonRef] = useState<HTMLButtonElement | null>(null);
   const participantPopupRef = useRef<HTMLDivElement>(null);
   const [showParser, setShowParser] = useState(false);
   const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
@@ -253,7 +250,6 @@ const Index: React.FC = () => {
         <div className="relative">
           <button
             data-dropdown-trigger="tags"
-            ref={setTagsButtonRef}
             onClick={() => {
               setShowTagsDropdown(!showTagsDropdown);
               setShowClusterDropdown(false);
@@ -502,79 +498,7 @@ const Index: React.FC = () => {
         </div>
       )}
 
-      {/* Попап с тегами */}
-      <Popover
-        isOpen={showTagsDropdown}
-        onClose={() => setShowTagsDropdown(false)}
-        anchorEl={tagsButtonRef}
-        placement="bottom"
-      >
-        <div className="p-4 max-w-lg max-h-[70vh] overflow-hidden flex flex-col">
-          {/* Заголовок */}
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium flex items-center gap-2">
-              <Icon name="Tags" size={16} />
-              Фильтр по тегам
-            </h3>
-            <span className="text-sm text-muted-foreground">
-              {selectedTags.length > 0 && `Выбрано: ${selectedTags.length}`}
-            </span>
-          </div>
-          
-          {/* Выбранные теги */}
-          {selectedTags.length > 0 && (
-            <div className="mb-3 pb-3 border-b">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-muted-foreground">Выбранные теги:</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedTags([])}
-                  className="h-6 text-xs"
-                >
-                  Очистить все
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {selectedTags.map(tag => (
-                  <Badge
-                    key={tag}
-                    variant="default"
-                    className="text-xs cursor-pointer"
-                    onClick={() => toggleTag(tag)}
-                  >
-                    {tag}
-                    <Icon name="X" size={10} className="ml-1" />
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Теги по категориям */}
-          <div className="flex-1 overflow-y-auto min-h-0 space-y-4 dropdown-scrollbar pr-2">
-            {tagCategories.map(category => (
-              <div key={category.key} className="space-y-2">
-                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {category.label}
-                </h4>
-                <div className="flex flex-wrap gap-1">
-                  {category.tags.map(tag => (
-                    <Badge
-                      key={tag}
-                      variant={selectedTags.includes(tag) ? "default" : "outline"}
-                      className="text-xs cursor-pointer hover:bg-muted transition-colors"
-                      onClick={() => toggleTag(tag)}
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Popover>
+
 
       {/* Компонент парсера */}
       {showParser && (
