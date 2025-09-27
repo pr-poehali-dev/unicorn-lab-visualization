@@ -36,10 +36,13 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Получаем актуальные узлы из симуляции
+    const simNodes = simulationRef.current ? simulationRef.current.nodes() : nodesRef.current;
+
     GraphRenderer.draw({
       ctx,
       dimensions,
-      simNodes: nodesRef.current,
+      simNodes,
       edges,
       selectedCluster,
       clusterColors,
