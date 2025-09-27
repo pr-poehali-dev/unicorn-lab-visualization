@@ -8,28 +8,58 @@ from pydantic import BaseModel, Field, ValidationError
 
 def get_tags_and_clusters_from_db() -> Tuple[List[str], List[str]]:
     """Load tags and clusters from database"""
-    # Parse DATABASE_URL and add schema to options
-    db_url = os.environ['DATABASE_URL']
-    if '?' in db_url:
-        db_url += '&options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
-    else:
-        db_url += '?options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
-    
-    conn = psycopg2.connect(db_url)
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     
-    # Get tags - use simple query without schema prefix
-    cur.execute("SELECT name FROM tags WHERE category != 'cluster' ORDER BY name")
-    tags = [row[0] for row in cur.fetchall()]
-    
-    # Get clusters
-    cur.execute("SELECT name FROM tags WHERE category = 'cluster' ORDER BY name")
-    clusters = [row[0] for row in cur.fetchall()]
-    
-    cur.close()
-    conn.close()
-    
-    return tags, clusters
+    try:
+        # Try to get current schema
+        cur.execute("SELECT current_schema()")
+        current_schema = cur.fetchone()[0]
+        print(f"Current schema: {current_schema}")
+        
+        # Get tags with full schema path
+        cur.execute("""
+            SELECT name FROM t_p95295728_unicorn_lab_visualiz.tags 
+            WHERE category != 'cluster' OR category IS NULL
+            ORDER BY name
+        """)
+        tags = [row[0] for row in cur.fetchall()]
+        
+        # Get clusters
+        cur.execute("""
+            SELECT name FROM t_p95295728_unicorn_lab_visualiz.tags 
+            WHERE category = 'cluster' 
+            ORDER BY name
+        """)
+        clusters = [row[0] for row in cur.fetchall()]
+        
+        print(f"Loaded {len(tags)} tags and {len(clusters)} clusters")
+        
+        # If no clusters found, use default ones
+        if not clusters:
+            clusters = ["IT", "Финансы", "Маркетинг", "Производство", "Услуги", 
+                       "Образование", "Здоровье", "Недвижимость", "Другое"]
+            print("Using default clusters")
+        
+        return tags, clusters
+        
+    except Exception as e:
+        print(f"Error loading tags from DB: {str(e)}")
+        # Return defaults on error
+        default_tags = [
+            "AI/ML", "стартапы", "инвестиции", "продажи", "маркетинг", "разработка", 
+            "консалтинг", "производство", "логистика", "финтех", "образование", 
+            "медицина", "e-commerce", "B2B", "B2C", "SaaS", "криптовалюты", 
+            "недвижимость", "HR", "дизайн", "аналитика", "управление проектами", 
+            "автоматизация", "робототехника", "IoT", "блокчейн", "масштабирование",
+            "нетворкинг", "коучинг", "франшизы", "экспорт", "импорт", "ритейл"
+        ]
+        default_clusters = ["IT", "Финансы", "Маркетинг", "Производство", "Услуги", 
+                           "Образование", "Здоровье", "Недвижимость", "Другое"]
+        return default_tags, default_clusters
+    finally:
+        cur.close()
+        conn.close()
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -224,14 +254,7 @@ IMPORTANT:
 
 def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: List[str], clusters: List[str]) -> Dict[str, Any]:
     """Save to database with clustering and tag relations"""
-    # Parse DATABASE_URL and add schema to options
-    db_url = os.environ['DATABASE_URL']
-    if '?' in db_url:
-        db_url += '&options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
-    else:
-        db_url += '?options=-csearch_path%3Dt_p95295728_unicorn_lab_visualiz'
-    
-    conn = psycopg2.connect(db_url)
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     
     imported_count = 0
@@ -240,8 +263,12 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
     errors = []
     
     # Get tag IDs mapping
-    cur.execute("SELECT id, name FROM tags")
-    tag_id_map = {name: id for id, name in cur.fetchall()}
+    try:
+        cur.execute("SELECT id, name FROM t_p95295728_unicorn_lab_visualiz.tags")
+        tag_id_map = {name: id for id, name in cur.fetchall()}
+    except:
+        print("Warning: Could not load tags mapping from DB")
+        tag_id_map = {}
     
     # Create lookup for parsed data
     parsed_lookup = {p['telegram_id']: p for p in parsed}
@@ -268,7 +295,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
             
             # Check if exists
             cur.execute(
-                "SELECT id FROM entrepreneurs WHERE telegram_id = %s",
+                "SELECT id FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs WHERE telegram_id = %s",
                 (telegram_id,)
             )
             existing = cur.fetchone()
@@ -277,7 +304,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                 entrepreneur_id = existing[0]
                 # Update existing
                 cur.execute("""
-                    UPDATE entrepreneurs 
+                    UPDATE t_p95295728_unicorn_lab_visualiz.entrepreneurs 
                     SET name = %s, description = %s, post_url = %s, 
                         cluster = %s, goal = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE telegram_id = %s
@@ -294,7 +321,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
             else:
                 # Insert new
                 cur.execute("""
-                    INSERT INTO entrepreneurs (
+                    INSERT INTO t_p95295728_unicorn_lab_visualiz.entrepreneurs (
                         telegram_id, name, description, post_url, 
                         cluster, goal, created_at, updated_at
                     ) VALUES (%s, %s, %s, %s, %s, %s, 
@@ -312,17 +339,23 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
                 imported_count += 1
             
             # Clear existing tags for this entrepreneur
-            cur.execute("DELETE FROM entrepreneur_tags WHERE entrepreneur_id = %s", (entrepreneur_id,))
+            try:
+                cur.execute("DELETE FROM t_p95295728_unicorn_lab_visualiz.entrepreneur_tags WHERE entrepreneur_id = %s", (entrepreneur_id,))
+            except:
+                print(f"Warning: Could not clear tags for entrepreneur {entrepreneur_id}")
             
             # Insert new tag relations
             for tag_name in tags:
                 tag_id = tag_id_map.get(tag_name)
                 if tag_id:
-                    cur.execute("""
-                        INSERT INTO entrepreneur_tags (entrepreneur_id, tag_id)
-                        VALUES (%s, %s)
-                        ON CONFLICT (entrepreneur_id, tag_id) DO NOTHING
-                    """, (entrepreneur_id, tag_id))
+                    try:
+                        cur.execute("""
+                            INSERT INTO t_p95295728_unicorn_lab_visualiz.entrepreneur_tags (entrepreneur_id, tag_id)
+                            VALUES (%s, %s)
+                            ON CONFLICT (entrepreneur_id, tag_id) DO NOTHING
+                        """, (entrepreneur_id, tag_id))
+                    except:
+                        print(f"Warning: Could not insert tag relation for {tag_name}")
                 else:
                     print(f"Warning: Tag '{tag_name}' not found in database")
                 
