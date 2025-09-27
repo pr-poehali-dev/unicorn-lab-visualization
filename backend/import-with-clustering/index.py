@@ -145,18 +145,20 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
                 'Content-Type': 'application/json'
             },
             json={
-                'model': 'gpt-5-2025-08-07',
+                'model': 'gpt-5-2025-08-07',  # Using GPT-5 as requested
                 'messages': [
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt}
                 ],
                 'response_format': {'type': 'json_object'}
             },
-            timeout=30.0
+            timeout=60.0
         )
         
-        if response.status_code != 200:
-            raise Exception(f"OpenAI API error: {response.status_code}")
+        if response.status_code == 403:
+            raise Exception(f"OpenAI API access forbidden. Please check if your API key has access to model gpt-5-2025-08-07")
+        elif response.status_code != 200:
+            raise Exception(f"OpenAI API error: {response.status_code} - {response.text}")
         
         result = response.json()
         content = result['choices'][0]['message']['content']
