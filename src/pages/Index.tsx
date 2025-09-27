@@ -268,9 +268,14 @@ const Index: React.FC = () => {
         >
           {/* Заголовок с кнопкой закрытия */}
           <div className="flex items-start justify-between mb-3">
-            <div>
+            <div className="flex-1">
               <h3 className="font-semibold text-lg">{selectedParticipant.name}</h3>
-              <p className="text-sm text-muted-foreground">{selectedParticipant.role}</p>
+              {selectedParticipant.goal && (
+                <div className="mt-2 p-2 bg-primary/10 rounded-md border border-primary/20">
+                  <p className="text-sm font-medium text-primary">Цель:</p>
+                  <p className="text-sm mt-1">{selectedParticipant.goal}</p>
+                </div>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -279,7 +284,7 @@ const Index: React.FC = () => {
                 setSelectedParticipant(null);
                 setPopupPosition(null);
               }}
-              className="h-6 w-6 -mr-1 -mt-1"
+              className="h-6 w-6 -mr-1 -mt-1 ml-2"
             >
               <Icon name="X" size={14} />
             </Button>
