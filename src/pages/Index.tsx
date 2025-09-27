@@ -269,10 +269,23 @@ const Index: React.FC = () => {
           {/* Заголовок с кнопкой закрытия */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
-              <h3 className="font-semibold text-lg">{selectedParticipant.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-lg">{selectedParticipant.name}</h3>
+                {/* Кластер справа от имени */}
+                <div className="flex items-center gap-1.5">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: clusterColors[selectedParticipant.cluster] || '#666' }}
+                  />
+                  <span className="text-sm text-muted-foreground">{selectedParticipant.cluster}</span>
+                </div>
+              </div>
               {selectedParticipant.goal && (
                 <div className="mt-2 p-2 bg-primary/10 rounded-md border border-primary/20">
-                  <p className="text-sm font-medium text-primary">Цель:</p>
+                  <div className="flex items-center gap-2">
+                    <Icon name="Target" size={16} className="text-primary" />
+                    <p className="text-sm font-medium text-primary">Цель:</p>
+                  </div>
                   <p className="text-sm mt-1">{selectedParticipant.goal}</p>
                 </div>
               )}
@@ -288,17 +301,6 @@ const Index: React.FC = () => {
             >
               <Icon name="X" size={14} />
             </Button>
-          </div>
-          
-          {/* Кластер */}
-          <div className="mb-3">
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: clusterColors[selectedParticipant.cluster] || '#666' }}
-              />
-              <span className="text-sm">{selectedParticipant.cluster}</span>
-            </div>
           </div>
           
           {/* Описание */}
@@ -327,8 +329,8 @@ const Index: React.FC = () => {
               className="w-full"
               onClick={() => window.open(selectedParticipant.postUrl, '_blank')}
             >
-              <Icon name="ExternalLink" size={14} className="mr-2" />
-              Открыть пост в Telegram
+              <Icon name="MessageCircle" size={14} className="mr-2" />
+              Познакомиться в Телеграм
             </Button>
           )}
         </div>
