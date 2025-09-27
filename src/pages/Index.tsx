@@ -11,6 +11,7 @@ import { TagsService, TagsConfig } from '@/services/tagsService';
 
 const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const [selectedCluster, setSelectedCluster] = useState('Все');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -22,6 +23,7 @@ const Index: React.FC = () => {
   const [showParser, setShowParser] = useState(false);
   const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tagsConfig, setTagsConfig] = useState<TagsConfig | null>(null);
 
@@ -125,7 +127,12 @@ const Index: React.FC = () => {
   const handleSetCluster = (cluster: string) => {
     // Проверяем, что кластер существует
     if (cluster === 'Все' || (tagsConfig && tagsConfig.clusters.includes(cluster))) {
-      setSelectedCluster(cluster);
+      // Запускаем анимацию
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setSelectedCluster(cluster);
+        setIsTransitioning(false);
+      }, 150);
       setShowClusterDropdown(false);
     } else {
       setSelectedCluster('Все'); // Сбрасываем на безопасное значение
@@ -138,11 +145,16 @@ const Index: React.FC = () => {
     // Проверяем, что тег существует в конфигурации
     const allTags = tagsConfig ? Object.values(tagsConfig.tagsByCategory).flat() : [];
     if (allTags.includes(tag)) {
-      if (selectedTags.includes(tag)) {
-        setSelectedTags(selectedTags.filter(t => t !== tag));
-      } else {
-        setSelectedTags([...selectedTags, tag]);
-      }
+      // Запускаем анимацию
+      setIsTransitioning(true);
+      setTimeout(() => {
+        if (selectedTags.includes(tag)) {
+          setSelectedTags(selectedTags.filter(t => t !== tag));
+        } else {
+          setSelectedTags([...selectedTags, tag]);
+        }
+        setIsTransitioning(false);
+      }, 150);
     }
   };
 
@@ -206,7 +218,8 @@ const Index: React.FC = () => {
           <div 
             className="absolute inset-0 transition-opacity duration-300"
             style={{
-              animation: 'fadeIn 300ms ease-in-out'
+              opacity: isTransitioning ? 0 : 1,
+              transition: 'opacity 150ms ease-in-out'
             }}
           >
             <ForceGraph
@@ -302,7 +315,13 @@ const Index: React.FC = () => {
               {selectedTags.length > 0 && (
                 <div className="px-3 pt-2 border-t">
                   <button
-                    onClick={() => setSelectedTags([])}
+                    onClick={() => {
+                      setIsTransitioning(true);
+                      setTimeout(() => {
+                        setSelectedTags([]);
+                        setIsTransitioning(false);
+                      }, 150);
+                    }}
                     className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Очистить все
