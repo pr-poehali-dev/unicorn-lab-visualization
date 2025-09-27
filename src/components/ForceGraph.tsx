@@ -52,18 +52,15 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     const simNodes = simulationRef.current.nodes();
     if (!simNodes || simNodes.length === 0) return null;
     
-    const visibleNodes = selectedCluster && selectedCluster !== 'Все'
-      ? simNodes.filter(n => n.data.cluster === selectedCluster)
-      : simNodes;
-
-    return visibleNodes.find(node => {
+    // Используем все узлы, так как они уже отфильтрованы
+    return simNodes.find(node => {
       // Проверяем что у узла есть валидные координаты
       if (typeof node.x !== 'number' || typeof node.y !== 'number') return false;
       
       const distance = Math.sqrt(Math.pow(node.x - x, 2) + Math.pow(node.y - y, 2));
       return distance <= 40;
     }) || null;
-  }, [selectedCluster]);
+  }, []);
 
   // Функция отрисовки графа
   const drawGraph = useCallback(() => {
