@@ -22,7 +22,6 @@ const Index: React.FC = () => {
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
   const [tagsButtonRef, setTagsButtonRef] = useState<HTMLButtonElement | null>(null);
   const participantPopupRef = useRef<HTMLDivElement>(null);
-  const lastClickTimeRef = useRef<number>(0);
   const [showParser, setShowParser] = useState(false);
   const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
@@ -89,28 +88,8 @@ const Index: React.FC = () => {
   }, []);
 
   const handleNodeClick = (entrepreneur: Entrepreneur, position: { x: number; y: number }) => {
-    const now = Date.now();
-    
-    // Предотвращаем двойные клики (защита от быстрых повторных срабатываний)
-    if (now - lastClickTimeRef.current < 100) {
-      console.log('Click ignored - too fast');
-      return;
-    }
-    lastClickTimeRef.current = now;
-    
-    console.log('Node clicked:', entrepreneur.name, 'Currently selected:', selectedParticipant?.name);
-    
-    // Если кликнули на уже выбранного участника - закрываем попап
-    if (selectedParticipant && selectedParticipant.id === entrepreneur.id) {
-      console.log('Closing popup for same participant');
-      setSelectedParticipant(null);
-      setPopupPosition(null);
-    } else {
-      // Иначе открываем попап для нового участника
-      console.log('Opening popup for new participant');
-      setSelectedParticipant(entrepreneur);
-      setPopupPosition(position);
-    }
+    setSelectedParticipant(entrepreneur);
+    setPopupPosition(position);
   };
 
   const toggleTag = (tag: string) => {
