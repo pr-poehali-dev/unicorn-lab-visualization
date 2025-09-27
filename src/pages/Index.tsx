@@ -137,6 +137,7 @@ const Index: React.FC = () => {
           edges={edges}
           onNodeClick={handleNodeClick}
           selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
+          clusterColors={tagsConfig?.clusterColors || {}}
         />
       )}
 
@@ -212,21 +213,40 @@ const Index: React.FC = () => {
       </div>
 
       {/* Легенда кластеров - компактная версия */}
-      {tagsConfig && Object.keys(tagsConfig.clusterColors).length > 0 && (
-        <div className="absolute bottom-8 left-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
-          <div className="flex items-center gap-3">
-            {Object.entries(tagsConfig.clusterColors).map(([cluster, color]) => (
-              <div key={cluster} className="flex items-center gap-1.5">
-                <div 
-                  className="w-2 h-2 rounded-full" 
-                  style={{ backgroundColor: color }}
-                />
-                <span className="text-xs text-muted-foreground">{cluster}</span>
-              </div>
-            ))}
+      {tagsConfig && Object.keys(tagsConfig.clusterColors).length > 0 && (() => {
+        // Подсчитываем количество участников в каждом кластере
+        const clusterCounts = filteredParticipants.reduce((acc, p) => {
+          acc[p.cluster] = (acc[p.cluster] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        // Сортируем кластеры по количеству участников
+        const sortedClusters = Object.entries(clusterCounts)
+          .sort(([, a], [, b]) => b - a)
+          .map(([cluster]) => cluster);
+        
+        const topClusters = sortedClusters.slice(0, 5);
+        const remainingCount = sortedClusters.length - 5;
+        
+        return (
+          <div className="absolute bottom-8 left-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
+            <div className="flex items-center gap-3">
+              {topClusters.map((cluster) => (
+                <div key={cluster} className="flex items-center gap-1.5">
+                  <div 
+                    className="w-2 h-2 rounded-full" 
+                    style={{ backgroundColor: tagsConfig.clusterColors[cluster] }}
+                  />
+                  <span className="text-xs text-muted-foreground">{cluster}</span>
+                </div>
+              ))}
+              {remainingCount > 0 && (
+                <span className="text-xs text-muted-foreground">+ {remainingCount} больше</span>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Счетчик узлов и кнопка сброса */}
       <div className="absolute top-8 right-8 flex items-center gap-2">
@@ -404,7 +424,7 @@ const Index: React.FC = () => {
           )}
           
           {/* Теги по категориям */}
-          <div className="flex-1 overflow-y-auto min-h-0 space-y-4">
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4 dropdown-scrollbar pr-2">
             {tagCategories.map(category => (
               <div key={category.key} className="space-y-2">
                 <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">

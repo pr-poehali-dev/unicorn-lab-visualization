@@ -119,3 +119,43 @@
 .popup-fade-in {
   animation: fadeIn 0.2s ease-in-out;
 }
+
+/* Стили для скроллбара */
+@layer utilities {
+  /* Темный скроллбар для всего приложения */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted hover:bg-muted-foreground/30;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) hsl(var(--background));
+  }
+
+  /* Специальные стили для выпадающих меню */
+  .dropdown-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .dropdown-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .dropdown-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-border hover:bg-muted-foreground/40;
+    border-radius: 3px;
+  }
+}

@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3-force';
 import { Entrepreneur, GraphEdge } from '@/types/entrepreneur';
-import { clusterColors } from '@/data/mockData';
+
 
 interface ForceGraphProps {
   nodes: Entrepreneur[];
   edges: GraphEdge[];
   onNodeClick: (node: Entrepreneur, position: { x: number, y: number }) => void;
   selectedCluster?: string | null;
+  clusterColors: Record<string, string>;
 }
 
 interface SimulationNode extends d3.SimulationNodeDatum {
@@ -21,7 +22,7 @@ interface SimulationNode extends d3.SimulationNodeDatum {
   data: Entrepreneur;
 }
 
-const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNodeClick, selectedCluster }, ref) => {
+const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ nodes, edges, onNodeClick, selectedCluster, clusterColors }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
