@@ -4,10 +4,10 @@ import psycopg2
 import httpx
 from typing import Dict, List, Any, Optional, Literal
 from datetime import datetime
-from pydantic import BaseModel, Field, ValidationError, validator
+from pydantic import BaseModel, Field, ValidationError
 
 # Define allowed values
-CLUSTERS = Literal["IT", "Финансы", "Маркетинг", "Производство", "Услуги", "Образование", "Здоровье", "Недвижимость", "Другое"]
+CLUSTERS = ["IT", "Финансы", "Маркетинг", "Производство", "Услуги", "Образование", "Здоровье", "Недвижимость", "Другое"]
 ALLOWED_TAGS = [
     "AI/ML", "стартапы", "инвестиции", "продажи", "маркетинг", "разработка", 
     "консалтинг", "производство", "логистика", "финтех", "образование", 
@@ -16,26 +16,6 @@ ALLOWED_TAGS = [
     "автоматизация", "робототехника", "IoT", "блокчейн", "масштабирование",
     "нетворкинг", "коучинг", "франшизы", "экспорт", "импорт", "ритейл"
 ]
-
-# Pydantic models for structured outputs
-class ParsedParticipant(BaseModel):
-    """Single parsed participant with clustering"""
-    name: str = Field(description="Full name of the participant")
-    telegram_id: str = Field(description="Telegram user ID")
-    cluster: CLUSTERS = Field(description="Select ONE cluster from: IT, Финансы, Маркетинг, Производство, Услуги, Образование, Здоровье, Недвижимость, Другое")
-    summary: str = Field(description="Create a concise 1-2 sentence summary highlighting their main expertise, business/role, and key achievements")
-    tags: List[str] = Field(min_items=3, max_items=5, description=f"Select 3-5 tags from: {', '.join(ALLOWED_TAGS)}")
-    
-    @validator('tags')
-    def validate_tags(cls, v):
-        for tag in v:
-            if tag not in ALLOWED_TAGS:
-                raise ValueError(f"Invalid tag: {tag}")
-        return v
-
-class BatchResponse(BaseModel):
-    """Response for batch processing"""
-    participants: List[ParsedParticipant] = Field(description="List of parsed participants")
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -107,7 +87,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
 
 
-def process_with_structured_output(participants: List[Dict]) -> List[ParsedParticipant]:
+def process_with_structured_output(participants: List[Dict]) -> List[Dict]:
     """Process participants using OpenAI structured output"""
     api_key = os.environ.get('OPENAI_API_KEY', '')
     if not api_key:
@@ -130,6 +110,35 @@ def process_with_structured_output(participants: List[Dict]) -> List[ParsedParti
     else:
         print("WARNING: No proxy configured, OpenAI might be blocked")
     
+    # Create JSON schema for structured output
+    json_schema = {
+        "type": "object",
+        "properties": {
+            "participants": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "telegram_id": {"type": "string"},
+                        "cluster": {"type": "string", "enum": CLUSTERS},
+                        "summary": {"type": "string"},
+                        "tags": {
+                            "type": "array",
+                            "items": {"type": "string", "enum": ALLOWED_TAGS},
+                            "minItems": 3,
+                            "maxItems": 5
+                        }
+                    },
+                    "required": ["name", "telegram_id", "cluster", "summary", "tags"],
+                    "additionalProperties": False
+                }
+            }
+        },
+        "required": ["participants"],
+        "additionalProperties": False
+    }
+    
     try:
         with httpx.Client(**client_kwargs) as client:
             response = client.post(
@@ -147,7 +156,7 @@ def process_with_structured_output(participants: List[Dict]) -> List[ParsedParti
 
 TASK:
 1. Extract participant information
-2. Assign ONE cluster: IT, Финансы, Маркетинг, Производство, Услуги, Образование, Здоровье, Недвижимость, Другое
+2. Assign ONE cluster: {', '.join(CLUSTERS)}
 3. Create a concise 1-2 sentence summary in Russian highlighting their expertise, role, and achievements
 4. Select exactly 3-5 tags from this list ONLY: {', '.join(ALLOWED_TAGS)}
 
@@ -166,7 +175,7 @@ IMPORTANT:
                         'type': 'json_schema',
                         'json_schema': {
                             'name': 'batch_response',
-                            'schema': BatchResponse.model_json_schema(),
+                            'schema': json_schema,
                             'strict': True
                         }
                     },
@@ -182,90 +191,16 @@ IMPORTANT:
             # Parse structured response
             result = response.json()
             content = result['choices'][0]['message']['content']
-            batch_response = BatchResponse.model_validate_json(content)
+            parsed = json.loads(content)
             
-            return batch_response.participants
+            return parsed['participants']
             
     except Exception as e:
         print(f"Error in AI processing: {str(e)}")
-        # Fallback to basic processing
-        return fallback_process(participants)
+        raise Exception(f"Failed to process participants with AI: {str(e)}")
 
 
-def fallback_process(participants: List[Dict]) -> List[ParsedParticipant]:
-    """Fallback processing without AI"""
-    result = []
-    
-    for p in participants:
-        # Basic cluster detection
-        text_lower = p.get('text', '').lower()
-        cluster = 'Другое'
-        
-        if any(word in text_lower for word in ['it', 'программ', 'разработ', 'код', 'software']):
-            cluster = 'IT'
-        elif any(word in text_lower for word in ['финанс', 'инвест', 'банк', 'деньг']):
-            cluster = 'Финансы'
-        elif any(word in text_lower for word in ['маркет', 'продаж', 'реклам', 'smm']):
-            cluster = 'Маркетинг'
-        elif any(word in text_lower for word in ['производ', 'завод', 'фабрик']):
-            cluster = 'Производство'
-        elif any(word in text_lower for word in ['услуг', 'сервис', 'консалт']):
-            cluster = 'Услуги'
-        elif any(word in text_lower for word in ['образован', 'обуч', 'курс', 'школ']):
-            cluster = 'Образование'
-        elif any(word in text_lower for word in ['медиц', 'здоров', 'клиник']):
-            cluster = 'Здоровье'
-        elif any(word in text_lower for word in ['недвиж', 'квартир', 'дом', 'аренд']):
-            cluster = 'Недвижимость'
-        
-        # Extract basic tags based on keywords
-        tags = []
-        if any(word in text_lower for word in ['стартап', 'startup', 'основатель']):
-            tags.append('стартапы')
-        if any(word in text_lower for word in ['ai', 'ml', 'искусственный интеллект']):
-            tags.append('AI/ML')
-        if any(word in text_lower for word in ['инвест', 'инвестор']):
-            tags.append('инвестиции')
-        if any(word in text_lower for word in ['продаж', 'sales']):
-            tags.append('продажи')
-        if any(word in text_lower for word in ['маркетинг', 'marketing']):
-            tags.append('маркетинг')
-        if any(word in text_lower for word in ['консалт', 'консульт']):
-            tags.append('консалтинг')
-        if any(word in text_lower for word in ['разработ', 'программ']):
-            tags.append('разработка')
-            
-        # Ensure minimum 3 tags
-        if len(tags) < 3:
-            if cluster == 'IT' and 'разработка' not in tags:
-                tags.append('разработка')
-            if 'консалтинг' not in tags:
-                tags.append('консалтинг')
-            if 'B2B' not in tags:
-                tags.append('B2B')
-        
-        # Create summary
-        text = p.get('text', '')
-        name = p.get('author', 'Unknown')
-        summary = f"{name} - предприниматель в сфере {cluster.lower()}."
-        if len(text) > 50:
-            # Try to extract first meaningful sentence
-            sentences = text.split('.')
-            if sentences and len(sentences[0]) > 20:
-                summary = sentences[0].strip() + '.'
-            
-        result.append(ParsedParticipant(
-            name=name,
-            telegram_id=p.get('authorId', ''),
-            cluster=cluster,
-            summary=summary[:200],  # Limit summary length
-            tags=tags[:5]  # Limit to 5 tags
-        ))
-    
-    return result
-
-
-def save_to_database(parsed: List[ParsedParticipant], original: List[Dict]) -> Dict[str, Any]:
+def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]:
     """Save to database with clustering"""
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
@@ -279,7 +214,7 @@ def save_to_database(parsed: List[ParsedParticipant], original: List[Dict]) -> D
     errors = []
     
     # Create lookup for parsed data
-    parsed_lookup = {p.telegram_id: p for p in parsed}
+    parsed_lookup = {p['telegram_id']: p for p in parsed}
     
     for participant in original:
         try:
@@ -290,14 +225,13 @@ def save_to_database(parsed: List[ParsedParticipant], original: List[Dict]) -> D
             # Get parsed data
             parsed_data = parsed_lookup.get(telegram_id)
             if parsed_data:
-                cluster = parsed_data.cluster
-                tags = parsed_data.tags
-                summary = parsed_data.summary
+                cluster = parsed_data['cluster']
+                tags = parsed_data['tags']
+                summary = parsed_data['summary']
             else:
-                cluster = 'Другое'
-                tags = []
-                summary = participant.get('text', '')[:200]  # First 200 chars as fallback
-            
+                # Skip participants without AI processing
+                continue
+
             # Count clusters
             clusters[cluster] = clusters.get(cluster, 0) + 1
             
