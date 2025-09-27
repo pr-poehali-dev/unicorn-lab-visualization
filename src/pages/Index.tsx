@@ -67,6 +67,17 @@ const Index: React.FC = () => {
     });
   }, [entrepreneurs, selectedCluster, selectedTags]);
 
+  // Фильтрация edges - только связи между видимыми узлами
+  const filteredEdges = useMemo(() => {
+    const visibleIds = new Set(filteredEntrepreneurs.map(e => e.id));
+    return edges.filter(edge => {
+      // Проверяем, что оба узла видимы
+      const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id;
+      const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id;
+      return visibleIds.has(sourceId) && visibleIds.has(targetId);
+    });
+  }, [edges, filteredEntrepreneurs]);
+
   // Загрузка данных из БД
   useEffect(() => {
     const loadData = async () => {
@@ -120,7 +131,6 @@ const Index: React.FC = () => {
       setSelectedCluster(cluster);
       setShowClusterDropdown(false);
     } else {
-      console.error('Invalid cluster:', cluster);
       setSelectedCluster('Все'); // Сбрасываем на безопасное значение
       setShowClusterDropdown(false);
     }
@@ -136,8 +146,6 @@ const Index: React.FC = () => {
       } else {
         setSelectedTags([...selectedTags, tag]);
       }
-    } else {
-      console.error('Invalid tag:', tag);
     }
   };
 
@@ -200,7 +208,7 @@ const Index: React.FC = () => {
         <ForceGraph
           ref={forceGraphRef}
           nodes={filteredEntrepreneurs}
-          edges={edges}
+          edges={filteredEdges}
           onNodeClick={handleNodeClick}
           selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
           clusterColors={tagsConfig?.clusterColors || {}}

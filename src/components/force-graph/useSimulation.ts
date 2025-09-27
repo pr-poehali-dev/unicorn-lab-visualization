@@ -67,8 +67,15 @@ export function useSimulation({
       // Обновляем узлы в симуляции
       simulationRef.current.nodes(simNodes);
       
-      // Обновляем связи
-      const simEdges = edges.map(e => ({ ...e }));
+      // Обновляем связи, проверяя что узлы существуют
+      const nodeIds = new Set(simNodes.map(n => n.id));
+      const validEdges = edges.filter(edge => {
+        const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id;
+        const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id;
+        return nodeIds.has(sourceId) && nodeIds.has(targetId);
+      });
+      
+      const simEdges = validEdges.map(e => ({ ...e }));
       const linkForce = simulationRef.current.force('link') as any;
       if (linkForce) {
         linkForce.links(simEdges);
