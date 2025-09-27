@@ -47,8 +47,9 @@ export function useNodeInteractions({
     if (node) {
       setDraggedNode(node);
       dragStartPosRef.current = { x, y };
-      node.fx = x;
-      node.fy = y;
+      // Фиксируем узел на его текущей позиции, а не на позиции мыши
+      node.fx = node.x;
+      node.fy = node.y;
       simulationRef.current?.alpha(0.3).restart();
     }
   }, [getNodeAtPosition, canvasRef, simulationRef]);
@@ -62,6 +63,9 @@ export function useNodeInteractions({
     const y = e.clientY - rect.top;
 
     if (draggedNode) {
+      // Обновляем позицию узла напрямую
+      draggedNode.x = x;
+      draggedNode.y = y;
       draggedNode.fx = x;
       draggedNode.fy = y;
       simulationRef.current?.alpha(0.3).restart();
@@ -92,21 +96,36 @@ export function useNodeInteractions({
           const globalY = rect.top + draggedNode.y;
           onNodeClick(draggedNode.data, { x: globalX, y: globalY });
         } else {
-          // Это было перетаскивание - фиксируем позицию
-          draggedNode.fx = draggedNode.x;
-          draggedNode.fy = draggedNode.y;
+          // Это было перетаскивание - убеждаемся, что узел зафиксирован на финальной позиции
+          const finalX = draggedNode.x;
+          const finalY = draggedNode.y;
+          draggedNode.fx = finalX;
+          draggedNode.fy = finalY;
+          
+          // Сохраняем позицию в nodePositionsRef
           nodePositionsRef.current.set(draggedNode.id, { 
-            x: draggedNode.x, 
-            y: draggedNode.y,
-            fx: draggedNode.x,
-            fy: draggedNode.y
+            x: finalX, 
+            y: finalY,
+            fx: finalX,
+            fy: finalY
           });
+          
+          // Находим узел в nodesRef и обновляем его позицию
+          const simNodes = nodesRef.current || [];
+          const nodeToUpdate = simNodes.find(n => n.id === draggedNode.id);
+          if (nodeToUpdate) {
+            nodeToUpdate.x = finalX;
+            nodeToUpdate.y = finalY;
+            nodeToUpdate.fx = finalX;
+            nodeToUpdate.fy = finalY;
+          }
         }
       }
 
       setDraggedNode(null);
       dragStartPosRef.current = null;
-      simulationRef.current?.alpha(0).restart();
+      // Важно: alpha(0) останавливает симуляцию, сохраняя фиксированные позиции
+      simulationRef.current?.alphaTarget(0).restart();
     }
   }, [draggedNode, onNodeClick, canvasRef, simulationRef, nodePositionsRef]);
 
@@ -114,18 +133,33 @@ export function useNodeInteractions({
     setHoveredNode(null);
     if (draggedNode) {
       // При выходе за пределы canvas фиксируем позицию
-      draggedNode.fx = draggedNode.x;
-      draggedNode.fy = draggedNode.y;
+      const finalX = draggedNode.x;
+      const finalY = draggedNode.y;
+      draggedNode.fx = finalX;
+      draggedNode.fy = finalY;
+      
       nodePositionsRef.current.set(draggedNode.id, { 
-        x: draggedNode.x, 
-        y: draggedNode.y,
-        fx: draggedNode.x,
-        fy: draggedNode.y
+        x: finalX, 
+        y: finalY,
+        fx: finalX,
+        fy: finalY
       });
+      
+      // Находим узел в nodesRef и обновляем его позицию
+      const simNodes = nodesRef.current || [];
+      const nodeToUpdate = simNodes.find(n => n.id === draggedNode.id);
+      if (nodeToUpdate) {
+        nodeToUpdate.x = finalX;
+        nodeToUpdate.y = finalY;
+        nodeToUpdate.fx = finalX;
+        nodeToUpdate.fy = finalY;
+      }
+      
       setDraggedNode(null);
       dragStartPosRef.current = null;
+      simulationRef.current?.alphaTarget(0).restart();
     }
-  }, [draggedNode, nodePositionsRef]);
+  }, [draggedNode, nodePositionsRef, nodesRef, simulationRef]);
 
   return {
     hoveredNode,
