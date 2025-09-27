@@ -144,9 +144,15 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
     
     user_prompt += "\nВерни JSON массив с полями: telegram_id, post_url, name, username, role, description, cluster, tags"
     
+    # Configure proxy properly for httpx
     client_kwargs = {}
     if proxy_url:
-        client_kwargs['proxies'] = proxy_url
+        # httpx expects proxies as dict with protocol mapping
+        client_kwargs['proxies'] = {
+            'http://': proxy_url,
+            'https://': proxy_url
+        }
+        print(f"Using proxy configuration: {proxy_url}")
     
     try:
         with httpx.Client(**client_kwargs) as client:
