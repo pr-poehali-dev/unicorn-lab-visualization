@@ -247,26 +247,36 @@ IMPORTANT:
 - Use ONLY tags from the provided list above, exactly as written
 - Tags are in Russian, match them carefully
 - Select 3-10 most relevant tags per person
+
+OUTPUT FORMAT (JSON):
+{{
+  "participants": [
+    {{
+      "name": "string",
+      "telegram_id": "string", 
+      "cluster": "string (one of the clusters)",
+      "summary": "string",
+      "goal": "string",
+      "emoji": "string (single emoji)",
+      "tags": ["string", "string", ...]
+    }}
+  ]
+}}
 - If no perfect match, choose the closest relevant tags
-- Focus on their skills, industry, business stage, needs'''
+- Focus on their skills, industry, business stage, needs
+
+IMPORTANT: Return ONLY valid JSON, no additional text or explanations.'''
                         },
                         {
                             'role': 'user',
                             'content': batch_text
                         }
                     ],
-                    'response_format': {
-                        'type': 'json_schema',
-                        'json_schema': {
-                            'name': 'batch_response',
-                            'schema': json_schema,
-                            'strict': True
-                        }
-                    },
+                    'response_format': {'type': 'json_object'},
                     'max_tokens': 800,
                     'temperature': 0
                 },
-                timeout=25.0
+                timeout=45.0
             )
             
             if response.status_code != 200:
@@ -274,10 +284,20 @@ IMPORTANT:
             
             # Parse structured response
             result = response.json()
-            print(f"OpenAI response: {result}")
+            
+            # Check if response has expected structure
+            if 'choices' not in result or not result['choices']:
+                raise Exception(f"Unexpected OpenAI response structure: {result}")
             
             content = result['choices'][0]['message']['content']
-            parsed = json.loads(content)
+            if not content:
+                raise Exception("OpenAI returned empty content")
+            
+            # Try to parse JSON
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as e:
+                raise Exception(f"Failed to parse OpenAI response as JSON: {str(e)}, Content: {content[:500]}...")
             
             return parsed['participants']
             
