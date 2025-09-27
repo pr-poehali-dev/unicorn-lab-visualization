@@ -30,13 +30,20 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   // Состояние для zoom и pan
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const panRef = useRef({ x: 0, y: 0 });
   const isPanning = useRef(false);
   const panStartPos = useRef<{ x: number; y: number } | null>(null);
+  const panAnimationFrame = useRef<number | null>(null);
   
 
 
   // Хук для управления размерами canvas
   const dimensions = useCanvasResize({ containerRef, canvasRef, simulationRef });
+  
+  // Синхронизируем panRef с pan state
+  useEffect(() => {
+    panRef.current = pan;
+  }, [pan]);
 
   // Функция поиска узла по координатам
   const getNodeAtPosition = useCallback((x: number, y: number): SimulationNode | null => {
@@ -79,7 +86,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       draggedNode,
       simulationRef,
       zoom,
-      pan
+      pan: isPanning.current ? panRef.current : pan
     });
   }, [selectedCluster, dimensions, edges, clusterColors, hoveredNodeId, draggedNode, zoom, pan]);
 
@@ -152,11 +159,25 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isPanning.current) {
-      // Обрабатываем pan
-      setPan({
+      // Обновляем ref немедленно для плавности
+      panRef.current = {
         x: e.clientX - panStartPos.current!.x,
         y: e.clientY - panStartPos.current!.y
+      };
+      
+      // Отменяем предыдущий кадр анимации
+      if (panAnimationFrame.current) {
+        cancelAnimationFrame(panAnimationFrame.current);
+      }
+      
+      // Немедленно перерисовываем canvas с новыми координатами
+      drawGraph();
+      
+      // Планируем обновление состояния в следующем кадре
+      panAnimationFrame.current = requestAnimationFrame(() => {
+        setPan({ ...panRef.current });
       });
+      
       return;
     }
     
@@ -193,6 +214,13 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     if (isPanning.current) {
       isPanning.current = false;
       panStartPos.current = null;
+      // Отменяем запланированное обновление
+      if (panAnimationFrame.current) {
+        cancelAnimationFrame(panAnimationFrame.current);
+        panAnimationFrame.current = null;
+      }
+      // Финальное обновление состояния
+      setPan({ ...panRef.current });
       return;
     }
     
