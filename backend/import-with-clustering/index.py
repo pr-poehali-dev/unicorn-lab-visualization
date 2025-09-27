@@ -266,7 +266,7 @@ IMPORTANT:
                     'max_tokens': 800,
                     'temperature': 0
                 },
-                timeout=15.0
+                timeout=25.0
             )
             
             if response.status_code != 200:
@@ -274,6 +274,8 @@ IMPORTANT:
             
             # Parse structured response
             result = response.json()
+            print(f"OpenAI response: {result}")
+            
             content = result['choices'][0]['message']['content']
             parsed = json.loads(content)
             

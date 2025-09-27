@@ -153,7 +153,7 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
                 'Content-Type': 'application/json'
             },
             json={
-                'model': 'gpt-4o-mini',  # Using faster model to avoid timeouts
+                'model': 'gpt-4o-mini',  # Using stable model for now
                 'messages': [
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt}
