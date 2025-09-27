@@ -71,12 +71,6 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     if (!ctx) return;
 
     const simNodes = simulationRef.current ? simulationRef.current.nodes() : nodesRef.current;
-    
-    console.log('ForceGraph.drawGraph вызван', {
-      simNodesCount: simNodes.length,
-      selectedCluster,
-      nodesCount: nodes.length
-    });
 
     GraphRenderer.draw({
       ctx,
@@ -91,7 +85,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       zoom,
       pan: isPanning.current ? panRef.current : pan
     });
-  }, [selectedCluster, dimensions, edges, clusterColors, hoveredNodeId, draggedNode, zoom, pan]);
+  }, [dimensions, edges, clusterColors, hoveredNodeId, draggedNode, zoom, pan]);
 
   // Хук для управления симуляцией
   const simulation = useSimulation({
@@ -118,40 +112,26 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     }
   }, [nodes.length, drawGraph]);
   
-  // Форсируем перерисовку при изменении фильтров
+  // Форсируем перерисовку при изменении данных узлов
   useEffect(() => {
-    console.log('ForceGraph: фильтр изменился', {
-      selectedCluster,
+    // Создаем уникальный ключ для текущего набора узлов
+    const nodesKey = nodes.map(n => n.id).sort().join(',');
+    
+    console.log('ForceGraph: данные изменились', {
       nodesCount: nodes.length,
       edgesCount: edges.length
     });
     
-    // Очищаем канвас полностью
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Принудительно очищаем весь канвас
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Сбрасываем состояние hover
+    // Сбрасываем состояние hover при изменении данных
     setHoveredNodeId(null);
     
-    // Небольшая задержка чтобы дать симуляции обновиться
+    // Даем симуляции время обновиться и делаем одну перерисовку
     const timeoutId = setTimeout(() => {
-      console.log('ForceGraph: запускаем перерисовку');
       drawGraph();
-      // Дополнительная перерисовка через короткий промежуток
-      setTimeout(() => {
-        console.log('ForceGraph: повторная перерисовка');
-        drawGraph();
-      }, 100);
-    }, 10);
+    }, 100);
     
     return () => clearTimeout(timeoutId);
-  }, [nodes, edges, selectedCluster, drawGraph]);
+  }, [nodes, edges, drawGraph]);
 
   // Функция обновления hover состояния
   const updateHoverState = useCallback(() => {

@@ -91,11 +91,8 @@ export function useSimulation({
         edgesCount: validEdges.length
       });
       
-      // Принудительно вызываем отрисовку несколько раз
+      // Принудительно вызываем отрисовку один раз
       onTickRef.current();
-      setTimeout(() => onTickRef.current(), 50);
-      setTimeout(() => onTickRef.current(), 100);
-      setTimeout(() => onTickRef.current(), 200);
       
       return;
     }
@@ -187,7 +184,7 @@ export function useSimulation({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [nodes, edges, dimensions]); // Убираем onTick из зависимостей
+  }, [nodes, edges, dimensions]); // Восстанавливаем исходные зависимости
 
   // Метод для сброса всех фиксированных позиций
   const resetNodePositions = useCallback(() => {
