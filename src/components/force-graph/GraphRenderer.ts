@@ -44,7 +44,10 @@ export class GraphRenderer {
     visibleNodeIds: Set<string>
   ) {
     const links = simulationRef.current?.force('link');
-    if (!links) return;
+    if (!links) {
+      console.log('No links force found');
+      return;
+    }
 
     const simLinks = (links as any).links();
     
@@ -66,11 +69,9 @@ export class GraphRenderer {
         );
         const weight = originalEdge?.weight || 0.5;
         
-        // Белый цвет с большей насыщенностью для лучшей видимости
-        const opacity = 0.4 + (weight * 0.4); // от 0.4 (слабая) до 0.8 (сильная)
-        
-        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-        ctx.lineWidth = 1.5 + (weight * 3); // от 1.5 до 4.5px
+        // Тонкая серая линия для связей
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1; // Тонкая линия как просили
         ctx.beginPath();
         ctx.moveTo(sourceNode.x, sourceNode.y);
         ctx.lineTo(targetNode.x, targetNode.y);
@@ -211,9 +212,10 @@ export class GraphRenderer {
 
     const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
 
+    // ВАЖНО: сначала рисуем связи, потом узлы
     this.drawEdges(ctx, simNodes, edges, simulationRef, visibleNodeIds);
 
-    // Рисование узлов
+    // Рисование узлов ПОВЕРХ связей
     visibleNodes.forEach(node => {
       const isHovered = node.id === hoveredNode;
       const isDragged = draggedNode?.id === node.id;
