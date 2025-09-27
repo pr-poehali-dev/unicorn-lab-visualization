@@ -2,24 +2,34 @@ import json
 import os
 import psycopg2
 import httpx
-from typing import Dict, List, Any, Optional, Literal
+from typing import Dict, List, Any, Optional, Literal, Tuple
 from datetime import datetime
 from pydantic import BaseModel, Field, ValidationError
 
-# Define allowed values
-CLUSTERS = ["IT", "Финансы", "Маркетинг", "Производство", "Услуги", "Образование", "Здоровье", "Недвижимость", "Другое"]
-ALLOWED_TAGS = [
-    "AI/ML", "стартапы", "инвестиции", "продажи", "маркетинг", "разработка", 
-    "консалтинг", "производство", "логистика", "финтех", "образование", 
-    "медицина", "e-commerce", "B2B", "B2C", "SaaS", "криптовалюты", 
-    "недвижимость", "HR", "дизайн", "аналитика", "управление проектами", 
-    "автоматизация", "робототехника", "IoT", "блокчейн", "масштабирование",
-    "нетворкинг", "коучинг", "франшизы", "экспорт", "импорт", "ритейл"
-]
+def get_tags_and_clusters_from_db() -> Tuple[List[str], List[str]]:
+    """Load tags and clusters from database"""
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    
+    schema = "t_p95295728_unicorn_lab_visualiz"
+    
+    # Get tags
+    cur.execute(f"SELECT name FROM {schema}.tags WHERE category != 'cluster' ORDER BY name")
+    tags = [row[0] for row in cur.fetchall()]
+    
+    # Get clusters
+    cur.execute(f"SELECT name FROM {schema}.tags WHERE category = 'cluster' ORDER BY name")
+    clusters = [row[0] for row in cur.fetchall()]
+    
+    cur.close()
+    conn.close()
+    
+    return tags, clusters
+
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Business: Import and cluster Telegram participants using OpenAI structured outputs
+    Business: Import and cluster Telegram participants using OpenAI with tags from DB
     Args: event with participants list
     Returns: Import results with clustering
     '''
@@ -59,11 +69,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         print(f"Received {len(participants)} participants")
         
+        # Get tags and clusters from database
+        allowed_tags, clusters = get_tags_and_clusters_from_db()
+        
+        print(f"Loaded {len(allowed_tags)} tags and {len(clusters)} clusters from DB")
+        
         # Process with AI clustering
-        clustered_participants = process_with_structured_output(participants)
+        clustered_participants = process_with_structured_output(participants, allowed_tags, clusters)
         
         # Save to database
-        result = save_to_database(clustered_participants, participants)
+        result = save_to_database(clustered_participants, participants, allowed_tags, clusters)
         
         return {
             'statusCode': 200,
@@ -87,8 +102,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
 
 
-def process_with_structured_output(participants: List[Dict]) -> List[Dict]:
-    """Process participants using OpenAI structured output"""
+def process_with_structured_output(participants: List[Dict], allowed_tags: List[str], clusters: List[str]) -> List[Dict]:
+    """Process participants using OpenAI structured output with DB tags and clusters"""
     api_key = os.environ.get('OPENAI_API_KEY', '')
     if not api_key:
         raise Exception("OPENAI_API_KEY not configured")
@@ -121,14 +136,14 @@ def process_with_structured_output(participants: List[Dict]) -> List[Dict]:
                     "properties": {
                         "name": {"type": "string"},
                         "telegram_id": {"type": "string"},
-                        "cluster": {"type": "string", "enum": CLUSTERS},
+                        "cluster": {"type": "string", "enum": clusters},
                         "summary": {"type": "string"},
                         "goal": {"type": "string"},
                         "tags": {
                             "type": "array",
-                            "items": {"type": "string", "enum": ALLOWED_TAGS},
+                            "items": {"type": "string", "enum": allowed_tags},
                             "minItems": 3,
-                            "maxItems": 5
+                            "maxItems": 10
                         }
                     },
                     "required": ["name", "telegram_id", "cluster", "summary", "goal", "tags"],
@@ -157,15 +172,15 @@ def process_with_structured_output(participants: List[Dict]) -> List[Dict]:
 
 TASK:
 1. Extract participant information
-2. Assign ONE cluster: {', '.join(CLUSTERS)}
+2. Assign ONE cluster: {', '.join(clusters)}
 3. Create a concise 1-2 sentence summary in Russian highlighting their expertise, role, and achievements
 4. Extract their main GOAL - what they want to achieve, find, or get from the community (1 sentence in Russian)
-5. Select exactly 3-5 tags from this list ONLY: {', '.join(ALLOWED_TAGS)}
+5. Select 3-10 tags from this list ONLY: {', '.join(allowed_tags)}
 
 IMPORTANT:
 - Summary must be a complete, professional description, not just cut text
 - Use ONLY tags from the provided list
-- Minimum 3 tags per person
+- Minimum 3 tags, maximum 10 tags per person
 - Focus on their professional activities and expertise'''
                         },
                         {
@@ -202,8 +217,8 @@ IMPORTANT:
         raise Exception(f"Failed to process participants with AI: {str(e)}")
 
 
-def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]:
-    """Save to database with clustering"""
+def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: List[str], clusters: List[str]) -> Dict[str, Any]:
+    """Save to database with clustering and tag relations"""
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     
@@ -212,8 +227,12 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
     
     imported_count = 0
     updated_count = 0
-    clusters = {}
+    clusters_count = {}
     errors = []
+    
+    # Get tag IDs mapping
+    cur.execute(f"SELECT id, name FROM {schema}.tags")
+    tag_id_map = {name: id for id, name in cur.fetchall()}
     
     # Create lookup for parsed data
     parsed_lookup = {p['telegram_id']: p for p in parsed}
@@ -236,7 +255,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
                 continue
 
             # Count clusters
-            clusters[cluster] = clusters.get(cluster, 0) + 1
+            clusters_count[cluster] = clusters_count.get(cluster, 0) + 1
             
             # Check if exists
             cur.execute(
@@ -246,18 +265,19 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
             existing = cur.fetchone()
             
             if existing:
+                entrepreneur_id = existing[0]
                 # Update existing
                 cur.execute(f"""
                     UPDATE {schema}.entrepreneurs 
                     SET name = %s, description = %s, post_url = %s, 
-                        cluster = %s, tags = %s, goal = %s, updated_at = CURRENT_TIMESTAMP
+                        cluster = %s, goal = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE telegram_id = %s
+                    RETURNING id
                 """, (
                     participant.get('author', 'Unknown'),
                     summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
                     cluster,
-                    tags,
                     goal,
                     telegram_id
                 ))
@@ -267,19 +287,35 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
                 cur.execute(f"""
                     INSERT INTO {schema}.entrepreneurs (
                         telegram_id, name, description, post_url, 
-                        cluster, tags, goal, created_at, updated_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, 
+                        cluster, goal, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, 
                             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    RETURNING id
                 """, (
                     telegram_id,
                     participant.get('author', 'Unknown'),
                     summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
                     cluster,
-                    tags,
                     goal
                 ))
+                entrepreneur_id = cur.fetchone()[0]
                 imported_count += 1
+            
+            # Clear existing tags for this entrepreneur
+            cur.execute(f"DELETE FROM {schema}.entrepreneur_tags WHERE entrepreneur_id = %s", (entrepreneur_id,))
+            
+            # Insert new tag relations
+            for tag_name in tags:
+                tag_id = tag_id_map.get(tag_name)
+                if tag_id:
+                    cur.execute(f"""
+                        INSERT INTO {schema}.entrepreneur_tags (entrepreneur_id, tag_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT (entrepreneur_id, tag_id) DO NOTHING
+                    """, (entrepreneur_id, tag_id))
+                else:
+                    print(f"Warning: Tag '{tag_name}' not found in database")
                 
         except Exception as e:
             errors.append(f"Error processing {participant.get('author', 'Unknown')}: {str(e)}")
@@ -294,6 +330,6 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
         'imported': imported_count,
         'updated': updated_count,
         'errors': errors,
-        'clusters': clusters,
+        'clusters': clusters_count,
         'total': len(original)
     }

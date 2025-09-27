@@ -43,21 +43,30 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Build query
         query = """
-            SELECT id, telegram_id, username, name, role, cluster, description, tags, post_url, goal, created_at, updated_at
-            FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs
+            SELECT e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, 
+                   e.description, e.post_url, e.goal, e.created_at, e.updated_at,
+                   COALESCE(array_agg(t.name) FILTER (WHERE t.name IS NOT NULL), '{}') as tags
+            FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs e
+            LEFT JOIN t_p95295728_unicorn_lab_visualiz.entrepreneur_tags et ON e.id = et.entrepreneur_id
+            LEFT JOIN t_p95295728_unicorn_lab_visualiz.tags t ON et.tag_id = t.id
             WHERE 1=1
         """
         query_params = []
         
         if search_query:
-            query += " AND (LOWER(name) LIKE LOWER(%s) OR %s = ANY(tags))"
+            query += """ AND (LOWER(e.name) LIKE LOWER(%s) OR EXISTS (
+                SELECT 1 FROM t_p95295728_unicorn_lab_visualiz.entrepreneur_tags et2
+                JOIN t_p95295728_unicorn_lab_visualiz.tags t2 ON et2.tag_id = t2.id
+                WHERE et2.entrepreneur_id = e.id AND LOWER(t2.name) = LOWER(%s)
+            ))"""
             query_params.extend([f'%{search_query}%', search_query])
         
         if cluster_filter and cluster_filter != 'Все':
-            query += " AND cluster = %s"
+            query += " AND e.cluster = %s"
             query_params.append(cluster_filter)
         
-        query += " ORDER BY name"
+        query += " GROUP BY e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, e.description, e.post_url, e.goal, e.created_at, e.updated_at"
+        query += " ORDER BY e.name"
         
         # Execute query
         cur.execute(query, query_params)
@@ -74,11 +83,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'role': row[4],
                 'cluster': row[5],
                 'description': row[6],
-                'tags': row[7] or [],
-                'post_url': row[8],
-                'goal': row[9],
-                'created_at': row[10].isoformat() if row[10] else None,
-                'updated_at': row[11].isoformat() if row[11] else None
+                'tags': row[11] if row[11] != '{}' else [],
+                'post_url': row[7],
+                'goal': row[8],
+                'created_at': row[9].isoformat() if row[9] else None,
+                'updated_at': row[10].isoformat() if row[10] else None
             })
         
         # Get connections
