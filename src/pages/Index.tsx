@@ -53,8 +53,14 @@ const Index: React.FC = () => {
       }
 
       // Фильтр по тегам
-      if (selectedTags.length > 0 && !selectedTags.some(tag => entrepreneur.tags.includes(tag))) {
-        return false;
+      if (selectedTags.length > 0) {
+        // Проверяем, что у предпринимателя есть теги и хотя бы один совпадает
+        if (!entrepreneur.tags || !Array.isArray(entrepreneur.tags)) {
+          return false;
+        }
+        if (!selectedTags.some(tag => entrepreneur.tags.includes(tag))) {
+          return false;
+        }
       }
 
       return true;
@@ -75,8 +81,28 @@ const Index: React.FC = () => {
         
         setTagsConfig(tagsConfigData);
         const { entrepreneurs: loadedEntrepreneurs, edges: loadedEdges } = ApiService.transformToEntrepreneurs(participantsData);
-        setEntrepreneurs(loadedEntrepreneurs);
+        
+        // Валидация данных предпринимателей
+        const validatedEntrepreneurs = loadedEntrepreneurs.map(entrepreneur => ({
+          ...entrepreneur,
+          tags: Array.isArray(entrepreneur.tags) ? entrepreneur.tags : [],
+          cluster: entrepreneur.cluster || 'Без кластера'
+        }));
+        
+        setEntrepreneurs(validatedEntrepreneurs);
         setEdges(loadedEdges);
+        
+        // Сбросим выбранные фильтры, если они невалидны
+        if (selectedCluster !== 'Все' && tagsConfigData && !tagsConfigData.clusters.includes(selectedCluster)) {
+          setSelectedCluster('Все');
+        }
+        
+        // Проверяем теги
+        const allTags = tagsConfigData ? Object.values(tagsConfigData.tagsByCategory).flat() : [];
+        const validSelectedTags = selectedTags.filter(tag => allTags.includes(tag));
+        if (validSelectedTags.length !== selectedTags.length) {
+          setSelectedTags(validSelectedTags);
+        }
       } catch (error) {
         console.error('Failed to load data:', error);
       } finally {
@@ -86,6 +112,34 @@ const Index: React.FC = () => {
 
     loadData();
   }, []);
+
+  // Безопасная установка кластера
+  const handleSetCluster = (cluster: string) => {
+    // Проверяем, что кластер существует
+    if (cluster === 'Все' || (tagsConfig && tagsConfig.clusters.includes(cluster))) {
+      setSelectedCluster(cluster);
+      setShowClusterDropdown(false);
+    } else {
+      console.error('Invalid cluster:', cluster);
+      setSelectedCluster('Все'); // Сбрасываем на безопасное значение
+      setShowClusterDropdown(false);
+    }
+  };
+
+  // Безопасное добавление/удаление тега
+  const handleToggleTag = (tag: string) => {
+    // Проверяем, что тег существует в конфигурации
+    const allTags = tagsConfig ? Object.values(tagsConfig.tagsByCategory).flat() : [];
+    if (allTags.includes(tag)) {
+      if (selectedTags.includes(tag)) {
+        setSelectedTags(selectedTags.filter(t => t !== tag));
+      } else {
+        setSelectedTags([...selectedTags, tag]);
+      }
+    } else {
+      console.error('Invalid tag:', tag);
+    }
+  };
 
   const handleNodeClick = (entrepreneur: Entrepreneur, position: { x: number; y: number }) => {
     setSelectedParticipant(entrepreneur);
@@ -115,6 +169,24 @@ const Index: React.FC = () => {
     }
   }, [selectedParticipant]);
 
+  // Закрытие dropdown при клике вне
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // Проверяем, что клик был не по кнопкам dropdown
+      if (!target.closest('[data-dropdown-trigger]') && !target.closest('[data-dropdown-content]')) {
+        setShowClusterDropdown(false);
+        setShowTagsDropdown(false);
+      }
+    };
+
+    if (showClusterDropdown || showTagsDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showClusterDropdown, showTagsDropdown]);
+
   return (
     <div className="relative h-[calc(100vh-4rem)] bg-card">
       {loading ? (
@@ -140,6 +212,7 @@ const Index: React.FC = () => {
         {/* Кластер */}
         <div className="relative">
           <button
+            data-dropdown-trigger="cluster"
             onClick={() => {
               setShowClusterDropdown(!showClusterDropdown);
               setShowTagsDropdown(false);
@@ -152,14 +225,11 @@ const Index: React.FC = () => {
           </button>
           
           {showClusterDropdown && (
-            <div className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg py-1 min-w-[200px] z-50">
+            <div data-dropdown-content="cluster" className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg py-1 min-w-[200px] z-50">
               {clusters.map(cluster => (
                 <button
                   key={cluster}
-                  onClick={() => {
-                    setSelectedCluster(cluster);
-                    setShowClusterDropdown(false);
-                  }}
+                  onClick={() => handleSetCluster(cluster)}
                   className={`w-full px-3 py-1.5 text-left text-sm hover:bg-muted transition-colors ${
                     selectedCluster === cluster ? 'bg-muted' : ''
                   }`}
@@ -174,6 +244,7 @@ const Index: React.FC = () => {
         {/* Теги */}
         <div className="relative">
           <button
+            data-dropdown-trigger="tags"
             ref={setTagsButtonRef}
             onClick={() => {
               setShowTagsDropdown(!showTagsDropdown);
@@ -191,6 +262,41 @@ const Index: React.FC = () => {
             <Icon name="ChevronDown" size={14} className="text-muted-foreground" />
           </button>
           
+          {showTagsDropdown && tagCategories.length > 0 && (
+            <div data-dropdown-content="tags" className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg py-2 min-w-[280px] max-h-[400px] overflow-y-auto z-50">
+              {tagCategories.map(category => (
+                <div key={category.key} className="px-3 py-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{category.label}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {category.tags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => handleToggleTag(tag)}
+                        className={`px-2 py-0.5 text-xs rounded-md transition-colors ${
+                          selectedTags.includes(tag)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted hover:bg-muted/80'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              
+              {selectedTags.length > 0 && (
+                <div className="px-3 pt-2 border-t">
+                  <button
+                    onClick={() => setSelectedTags([])}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Очистить все
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       </div>
