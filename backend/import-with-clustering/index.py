@@ -106,11 +106,13 @@ def process_with_structured_output(participants: List[Dict]) -> List[ParsedParti
         batch_text += f"Text: {p.get('text', '')}\n\n"
     
     # Setup proxy if needed
-    proxy_url = os.environ.get('HTTP_PROXY', '')
+    proxy_url = os.environ.get('OPENAI_HTTP_PROXY', '')
     client_kwargs = {}
     if proxy_url:
         client_kwargs['proxies'] = {'http://': proxy_url, 'https://': proxy_url}
         print(f"Using proxy: {proxy_url}")
+    else:
+        print("WARNING: No proxy configured, OpenAI might be blocked")
     
     try:
         with httpx.Client(**client_kwargs) as client:
