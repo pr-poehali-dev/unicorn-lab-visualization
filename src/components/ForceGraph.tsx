@@ -35,11 +35,16 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     if (!simulationRef.current) return null;
     
     const simNodes = simulationRef.current.nodes();
+    if (!simNodes || simNodes.length === 0) return null;
+    
     const visibleNodes = selectedCluster && selectedCluster !== 'Все'
       ? simNodes.filter(n => n.data.cluster === selectedCluster)
       : simNodes;
 
     return visibleNodes.find(node => {
+      // Проверяем что у узла есть валидные координаты
+      if (typeof node.x !== 'number' || typeof node.y !== 'number') return false;
+      
       const distance = Math.sqrt(Math.pow(node.x - x, 2) + Math.pow(node.y - y, 2));
       return distance <= 40;
     }) || null;
@@ -80,6 +85,18 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   // Обновляем ссылки
   simulationRef.current = simulation.simulationRef.current;
   nodesRef.current = simulation.nodesRef.current;
+  
+  // Форсируем перерисовку после загрузки узлов
+  useEffect(() => {
+    if (nodes.length > 0 && simulationRef.current) {
+      // Небольшая задержка для гарантии инициализации
+      const timeoutId = setTimeout(() => {
+        drawGraph();
+      }, 50);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [nodes.length, drawGraph]);
 
   // Функция обновления hover состояния
   const updateHoverState = useCallback(() => {
@@ -101,10 +118,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
 
   // Обработчики событий мыши
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
@@ -119,10 +133,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   }, [getNodeAtPosition]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
@@ -224,8 +235,17 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   // Проверяем hover состояние когда мышь внутри области
   useEffect(() => {
     let rafId: number;
+    let isActive = true;
     
     const checkHover = () => {
+      if (!isActive) return;
+      
+      // Проверяем что симуляция инициализирована
+      if (!simulationRef.current || !nodesRef.current || nodesRef.current.length === 0) {
+        rafId = requestAnimationFrame(checkHover);
+        return;
+      }
+      
       // Проверяем только если мышь внутри и не перетаскиваем узел
       if (isMouseInsideRef.current && !draggedNode) {
         const { x, y } = mousePosRef.current;
@@ -247,9 +267,14 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
       rafId = requestAnimationFrame(checkHover);
     };
     
-    rafId = requestAnimationFrame(checkHover);
+    // Небольшая задержка для инициализации симуляции
+    const timeoutId = setTimeout(() => {
+      rafId = requestAnimationFrame(checkHover);
+    }, 100);
     
     return () => {
+      isActive = false;
+      clearTimeout(timeoutId);
       if (rafId) {
         cancelAnimationFrame(rafId);
       }
