@@ -88,7 +88,7 @@ export class ApiService {
     const edges: GraphEdge[] = data.connections.map(c => ({
       source: idMap.get(c.source) || c.source.toString(),
       target: idMap.get(c.target) || c.target.toString(),
-      weight: c.strength / 10 // Преобразуем strength (1-10) в weight (0.1-1.0)
+      weight: c.strength // Используем strength напрямую (0.3-1.0)
     }));
 
     return { entrepreneurs, edges };
