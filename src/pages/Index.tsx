@@ -1,13 +1,14 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import ForceGraph from '@/components/ForceGraph';
 import Popover from '@/components/Popover';
-import { entrepreneurs, edges, clusterColors } from '@/data/mockData';
-import { Entrepreneur } from '@/types/entrepreneur';
+import { clusterColors } from '@/data/mockData';
+import { Entrepreneur, GraphEdge } from '@/types/entrepreneur';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import TelegramParser from '@/components/TelegramParser';
+import { ApiService } from '@/services/api';
 
 const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
@@ -21,6 +22,9 @@ const Index: React.FC = () => {
   const [tagsButtonRef, setTagsButtonRef] = useState<HTMLButtonElement | null>(null);
   const participantPopupRef = useRef<HTMLDivElement>(null);
   const [showParser, setShowParser] = useState(false);
+  const [entrepreneurs, setEntrepreneurs] = useState<Entrepreneur[]>([]);
+  const [edges, setEdges] = useState<GraphEdge[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Получаем уникальные кластеры и теги
   const clusters = useMemo(() => {
@@ -54,7 +58,26 @@ const Index: React.FC = () => {
 
       return true;
     });
-  }, [searchQuery, selectedCluster, selectedTags]);
+  }, [entrepreneurs, searchQuery, selectedCluster, selectedTags]);
+
+  // Загрузка данных из БД
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const data = await ApiService.getParticipants();
+        const { entrepreneurs: loadedEntrepreneurs, edges: loadedEdges } = ApiService.transformToEntrepreneurs(data);
+        setEntrepreneurs(loadedEntrepreneurs);
+        setEdges(loadedEdges);
+      } catch (error) {
+        console.error('Failed to load participants:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const handleNodeClick = (entrepreneur: Entrepreneur, position: { x: number; y: number }) => {
     setSelectedParticipant(entrepreneur);
@@ -86,13 +109,22 @@ const Index: React.FC = () => {
 
   return (
     <div className="relative h-[calc(100vh-4rem)] bg-card">
-      <ForceGraph
-        ref={forceGraphRef}
-        nodes={filteredEntrepreneurs}
-        edges={edges}
-        onNodeClick={handleNodeClick}
-        selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
-      />
+      {loading ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Icon name="Loader2" size={48} className="animate-spin text-primary" />
+            <p className="text-muted-foreground">Загружаем данные участников...</p>
+          </div>
+        </div>
+      ) : (
+        <ForceGraph
+          ref={forceGraphRef}
+          nodes={filteredEntrepreneurs}
+          edges={edges}
+          onNodeClick={handleNodeClick}
+          selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
+        />
+      )}
 
       {/* Компактные виджеты в одну линию */}
       <div className="absolute top-8 left-8 flex items-center gap-2">
@@ -201,7 +233,7 @@ const Index: React.FC = () => {
         </Button>
         <div className="bg-background/90 backdrop-blur px-3 h-8 flex items-center rounded-md border">
           <span className="text-sm text-muted-foreground">
-            {filteredEntrepreneurs.length} узлов
+            {loading ? '...' : `${filteredEntrepreneurs.length} узлов`}
           </span>
         </div>
       </div>
@@ -212,13 +244,13 @@ const Index: React.FC = () => {
           <div className="flex items-center gap-1.5">
             <Icon name="Users" size={14} className="text-muted-foreground" />
             <span className="text-muted-foreground">Всего:</span>
-            <span className="font-medium">{entrepreneurs.length}</span>
+            <span className="font-medium">{loading ? '...' : entrepreneurs.length}</span>
           </div>
           <div className="h-3 w-px bg-border" />
           <div className="flex items-center gap-1.5">
             <Icon name="Eye" size={14} className="text-muted-foreground" />
             <span className="text-muted-foreground">Показано:</span>
-            <span className="font-medium">{filteredEntrepreneurs.length}</span>
+            <span className="font-medium">{loading ? '...' : filteredEntrepreneurs.length}</span>
           </div>
         </div>
       </div>
