@@ -309,8 +309,8 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     
-    // Вычисляем новый зум
-    const delta = e.deltaY < 0 ? 1.1 : 0.9;
+    // Вычисляем новый зум (уменьшенная скорость)
+    const delta = e.deltaY < 0 ? 1.05 : 0.95;
     const newZoom = Math.max(0.3, Math.min(3, zoomRef.current * delta));
     
     // Корректируем pan чтобы зумить к позиции курсора
@@ -407,7 +407,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
 
   // Методы управления зумом
   const zoomIn = useCallback(() => {
-    const newZoom = Math.min(zoomRef.current * 1.2, 3);
+    const newZoom = Math.min(zoomRef.current * 1.15, 3);
     zoomRef.current = newZoom;
     
     // Отменяем предыдущий кадр анимации
@@ -425,7 +425,7 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
   }, [drawGraph]);
 
   const zoomOut = useCallback(() => {
-    const newZoom = Math.max(zoomRef.current / 1.2, 0.3);
+    const newZoom = Math.max(zoomRef.current / 1.15, 0.3);
     zoomRef.current = newZoom;
     
     // Отменяем предыдущий кадр анимации
