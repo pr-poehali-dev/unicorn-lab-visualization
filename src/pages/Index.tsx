@@ -88,8 +88,15 @@ const Index: React.FC = () => {
   }, []);
 
   const handleNodeClick = (entrepreneur: Entrepreneur, position: { x: number; y: number }) => {
-    setSelectedParticipant(entrepreneur);
-    setPopupPosition(position);
+    // Если кликнули на уже выбранного участника - закрываем попап
+    if (selectedParticipant && selectedParticipant.id === entrepreneur.id) {
+      setSelectedParticipant(null);
+      setPopupPosition(null);
+    } else {
+      // Иначе открываем попап для нового участника
+      setSelectedParticipant(entrepreneur);
+      setPopupPosition(position);
+    }
   };
 
   const toggleTag = (tag: string) => {
