@@ -317,8 +317,8 @@ const TelegramParser: React.FC = () => {
       setUploadProgress(20);
       toast.info(`Загружено ${participants.length} участников, начинаем пакетную обработку...`);
       
-      // Обрабатываем в батчах по 10 для избежания таймаутов
-      const batchSize = 10;
+      // Обрабатываем в батчах по 5 для избежания таймаутов
+      const batchSize = 5;
       const totalBatches = Math.ceil(participants.length / batchSize);
       let totalImported = 0;
       let totalUpdated = 0;

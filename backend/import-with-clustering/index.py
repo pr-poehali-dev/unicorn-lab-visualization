@@ -99,7 +99,7 @@ def cluster_participants(raw_participants: List[Dict]) -> List[Dict]:
         raise Exception('OpenAI API key not configured')
     
     # Process in smaller batches to avoid timeouts
-    batch_size = 10  # Reduced to avoid OpenAI timeouts
+    batch_size = 5  # Further reduced to ensure completion within 30s
     all_results = []
     
     for i in range(0, len(raw_participants), batch_size):
@@ -169,9 +169,9 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
                         {'role': 'user', 'content': user_prompt}
                     ],
                     'response_format': {'type': 'json_object'},
-                    'max_tokens': 4000
+                    'max_tokens': 1500  # Reduced to speed up response
                 },
-                timeout=30.0  # Increased timeout for OpenAI
+                timeout=20.0  # Balanced timeout to avoid function timeout
             )
             
             if response.status_code == 403:
