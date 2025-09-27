@@ -43,8 +43,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Build query
         query = """
-            SELECT id, telegram_id, username, name, role, cluster, description, tags, post_url, created_at, updated_at
-            FROM entrepreneurs
+            SELECT id, telegram_id, username, name, role, cluster, description, tags, post_url, goal, created_at, updated_at
+            FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs
             WHERE 1=1
         """
         query_params = []
@@ -76,14 +76,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'description': row[6],
                 'tags': row[7] or [],
                 'post_url': row[8],
-                'created_at': row[9].isoformat() if row[9] else None,
-                'updated_at': row[10].isoformat() if row[10] else None
+                'goal': row[9],
+                'created_at': row[10].isoformat() if row[10] else None,
+                'updated_at': row[11].isoformat() if row[11] else None
             })
         
         # Get connections
         cur.execute("""
             SELECT source_id, target_id, connection_type, strength
-            FROM connections
+            FROM t_p95295728_unicorn_lab_visualiz.connections
         """)
         connections = []
         for row in cur.fetchall():

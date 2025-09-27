@@ -56,6 +56,15 @@ const ParticipantModal: React.FC<ParticipantModalProps> = ({ participant, isOpen
               {participant.cluster}
             </Badge>
           </div>
+          
+          {participant.goal && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Цель</h3>
+              <div className="bg-muted/50 rounded-lg p-4 border">
+                <p className="text-base italic">{participant.goal}</p>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

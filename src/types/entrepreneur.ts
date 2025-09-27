@@ -11,6 +11,7 @@ export interface Entrepreneur {
   };
   role?: string;
   postUrl?: string;
+  goal?: string;
 }
 
 export interface GraphEdge {

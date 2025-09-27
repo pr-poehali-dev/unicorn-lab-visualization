@@ -16,6 +16,7 @@ export interface ParticipantsResponse {
     description: string;
     tags: string[];
     post_url: string | null;
+    goal: string | null;
     created_at: string;
     updated_at: string;
   }>;
@@ -75,6 +76,7 @@ export class ApiService {
       tags: p.tags,
       cluster: p.cluster,
       postUrl: p.post_url || undefined,
+      goal: p.goal || undefined,
       position: { x: 0, y: 0 } // Позиции будут рассчитываться в ForceGraph
     }));
 

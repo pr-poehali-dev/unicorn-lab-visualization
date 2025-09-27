@@ -123,6 +123,7 @@ def process_with_structured_output(participants: List[Dict]) -> List[Dict]:
                         "telegram_id": {"type": "string"},
                         "cluster": {"type": "string", "enum": CLUSTERS},
                         "summary": {"type": "string"},
+                        "goal": {"type": "string"},
                         "tags": {
                             "type": "array",
                             "items": {"type": "string", "enum": ALLOWED_TAGS},
@@ -130,7 +131,7 @@ def process_with_structured_output(participants: List[Dict]) -> List[Dict]:
                             "maxItems": 5
                         }
                     },
-                    "required": ["name", "telegram_id", "cluster", "summary", "tags"],
+                    "required": ["name", "telegram_id", "cluster", "summary", "goal", "tags"],
                     "additionalProperties": False
                 }
             }
@@ -158,7 +159,8 @@ TASK:
 1. Extract participant information
 2. Assign ONE cluster: {', '.join(CLUSTERS)}
 3. Create a concise 1-2 sentence summary in Russian highlighting their expertise, role, and achievements
-4. Select exactly 3-5 tags from this list ONLY: {', '.join(ALLOWED_TAGS)}
+4. Extract their main GOAL - what they want to achieve, find, or get from the community (1 sentence in Russian)
+5. Select exactly 3-5 tags from this list ONLY: {', '.join(ALLOWED_TAGS)}
 
 IMPORTANT:
 - Summary must be a complete, professional description, not just cut text
@@ -228,6 +230,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
                 cluster = parsed_data['cluster']
                 tags = parsed_data['tags']
                 summary = parsed_data['summary']
+                goal = parsed_data['goal']
             else:
                 # Skip participants without AI processing
                 continue
@@ -247,7 +250,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
                 cur.execute(f"""
                     UPDATE {schema}.entrepreneurs 
                     SET name = %s, description = %s, post_url = %s, 
-                        cluster = %s, tags = %s, updated_at = CURRENT_TIMESTAMP
+                        cluster = %s, tags = %s, goal = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE telegram_id = %s
                 """, (
                     participant.get('author', 'Unknown'),
@@ -255,6 +258,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
                     participant.get('messageLink', ''),
                     cluster,
                     tags,
+                    goal,
                     telegram_id
                 ))
                 updated_count += 1
@@ -263,8 +267,8 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
                 cur.execute(f"""
                     INSERT INTO {schema}.entrepreneurs (
                         telegram_id, name, description, post_url, 
-                        cluster, tags, created_at, updated_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, 
+                        cluster, tags, goal, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, 
                             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """, (
                     telegram_id,
@@ -272,7 +276,8 @@ def save_to_database(parsed: List[Dict], original: List[Dict]) -> Dict[str, Any]
                     summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
                     cluster,
-                    tags
+                    tags,
+                    goal
                 ))
                 imported_count += 1
                 
