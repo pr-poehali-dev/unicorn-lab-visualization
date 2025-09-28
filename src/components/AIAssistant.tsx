@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
@@ -110,27 +110,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Icon name="Bot" size={20} />
-          <h2 className="font-semibold">AI Ассистент</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearHistory}
-              title="Очистить историю"
-            >
-              <Icon name="Trash2" size={16} />
-            </Button>
-          )}
-        </div>
-      </div>
-
+    <div className="h-full flex flex-col bg-card">
       {/* Messages */}
       <ScrollArea ref={scrollRef} className="flex-1 p-4">
         {messages.length === 0 && (
@@ -194,6 +174,17 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
           }}
           className="flex gap-2"
         >
+          {messages.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={clearHistory}
+              title="Очистить историю"
+            >
+              <Icon name="Trash2" size={16} />
+            </Button>
+          )}
           <Input
             ref={inputRef}
             value={input}
@@ -207,7 +198,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
           </Button>
         </form>
       </div>
-    </Card>
+    </div>
   );
 };
 
