@@ -63,13 +63,11 @@ def get_tags_and_clusters_from_db() -> Tuple[List[str], Dict[str, int]]:
         """)
         tags = [row[0] for row in cur.fetchall()]
         
-        # Get cluster tags with IDs
+        # Get clusters from clusters table
         cur.execute("""
-            SELECT t.id, t.name 
-            FROM t_p95295728_unicorn_lab_visualiz.tags t
-            JOIN t_p95295728_unicorn_lab_visualiz.tag_categories tc ON t.category_id = tc.id
-            WHERE tc.key = 'cluster'
-            ORDER BY t.name
+            SELECT id, name 
+            FROM t_p95295728_unicorn_lab_visualiz.clusters
+            ORDER BY display_order, name
         """)
         cluster_rows = cur.fetchall()
         clusters_dict = {name: id for id, name in cluster_rows}
