@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
@@ -23,7 +21,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Load messages from localStorage on mount
   useEffect(() => {
@@ -58,6 +56,15 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
       inputRef.current.focus();
     }
   }, []);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = '0px';
+      const scrollHeight = inputRef.current.scrollHeight;
+      inputRef.current.style.height = Math.min(scrollHeight, 200) + 'px';
+    }
+  }, [input]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -116,8 +123,31 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
     toast.success('История очищена');
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
   return (
-    <div className="h-full flex flex-col bg-card">
+    <div className="h-full flex flex-col bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b">
+        <h3 className="font-semibold">AI Ассистент</h3>
+        {messages.length > 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={clearHistory}
+            title="Очистить историю"
+            className="h-8 w-8"
+          >
+            <Icon name="Trash2" size={16} />
+          </Button>
+        )}
+      </div>
+
       {/* Messages */}
       <ScrollArea ref={scrollRef} className="flex-1 p-4">
         {messages.length === 0 && (
@@ -128,43 +158,61 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
           </div>
         )}
         
-        <div className="space-y-4">
+        <div className="space-y-6">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} gap-3`}
             >
-              <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                  message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                {message.related_users_ids && message.related_users_ids.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-current/20">
+              {/* Avatar for assistant */}
+              {message.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Icon name="Bot" size={16} className="text-primary" />
+                </div>
+              )}
+              
+              <div className={`max-w-[70%] ${message.role === 'user' ? 'order-1' : 'order-2'}`}>
+                <div
+                  className={`rounded-2xl px-4 py-3 ${
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted/50 text-foreground'
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  {message.related_users_ids && message.related_users_ids.length > 0 && (
                     <button
                       onClick={() => onSelectUsers(message.related_users_ids!)}
-                      className="text-xs opacity-80 hover:opacity-100 flex items-center gap-1"
+                      className="mt-3 text-xs flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity"
                     >
                       <Icon name="Users" size={14} />
                       Показать {message.related_users_ids.length} участников
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
+
+              {/* Avatar for user */}
+              {message.role === 'user' && (
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 order-2">
+                  <Icon name="User" size={16} />
+                </div>
+              )}
             </div>
           ))}
           
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-lg px-4 py-2">
+            <div className="flex justify-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Icon name="Bot" size={16} className="text-primary" />
+              </div>
+              <div className="bg-muted/50 rounded-2xl px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <div className="animate-spin">
-                    <Icon name="Loader2" size={16} />
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                    <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                    <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
                   </div>
-                  <span className="text-sm">Думаю...</span>
                 </div>
               </div>
             </div>
@@ -172,39 +220,38 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
         </div>
       </ScrollArea>
 
-      {/* Input */}
+      {/* Input Area */}
       <div className="p-4 border-t">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            sendMessage();
-          }}
-          className="flex gap-2"
-        >
-          {messages.length > 0 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={clearHistory}
-              title="Очистить историю"
-            >
-              <Icon name="Trash2" size={16} />
-            </Button>
-          )}
-          <Input
+        <div className="relative max-w-3xl mx-auto">
+          <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Задайте вопрос..."
+            onKeyDown={handleKeyDown}
+            placeholder="Отправьте сообщение..."
             disabled={isLoading}
-            className="flex-1 focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0 caret-primary"
-            autoFocus
+            className="w-full resize-none rounded-2xl border bg-background px-4 py-3 pr-12 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            rows={1}
+            style={{
+              minHeight: '44px',
+              maxHeight: '200px'
+            }}
           />
-          <Button type="submit" disabled={isLoading || !input.trim()}>
-            <Icon name="Send" size={16} />
-          </Button>
-        </form>
+          <button
+            onClick={sendMessage}
+            disabled={isLoading || !input.trim()}
+            className="absolute bottom-2 right-2 rounded-xl p-2 transition-colors hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Icon 
+              name={isLoading ? "Loader2" : "ArrowUp"} 
+              size={20} 
+              className={isLoading ? "animate-spin" : ""}
+            />
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground text-center mt-2">
+          Нажмите Enter для отправки, Shift+Enter для новой строки
+        </p>
       </div>
     </div>
   );

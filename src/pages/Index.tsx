@@ -285,7 +285,7 @@ const Index: React.FC = () => {
         <>
           {/* Левая панель с AI ассистентом - только на десктопе */}
           {!isMobile && showAIAssistant && (
-            <div className="w-96 border-r border-border flex-shrink-0">
+            <div className="w-[400px] border-r border-border flex-shrink-0 bg-background">
               <AIAssistant
                 entrepreneurs={filteredEntrepreneurs}
                 onSelectUsers={handleAISelectUsers}
