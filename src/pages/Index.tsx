@@ -55,9 +55,23 @@ const Index: React.FC = () => {
     return entrepreneurs.filter(entrepreneur => {
       // Если выбраны участники через AI, показываем только их
       if (aiSelectedUserIds.length > 0) {
-        // Преобразуем id предпринимателя в число для сравнения
-        const entrepreneurNumericId = parseInt(entrepreneur.id);
-        return aiSelectedUserIds.includes(entrepreneurNumericId);
+        // AI возвращает числовые ID, а entrepreneur.id может быть telegram_id или просто id.toString()
+        // Нужно проверить оба варианта
+        const entrepreneurIdAsString = entrepreneur.id;
+        const isSelectedById = aiSelectedUserIds.some(aiId => {
+          // Проверяем точное совпадение со строковым представлением
+          return entrepreneurIdAsString === aiId.toString() || 
+                 entrepreneurIdAsString === String(aiId);
+        });
+        
+        console.log('AI Filter Debug:', {
+          entrepreneurId: entrepreneur.id,
+          aiSelectedUserIds,
+          isSelectedById,
+          entrepreneurName: entrepreneur.name
+        });
+        
+        return isSelectedById;
       }
       
       // Фильтр по кластеру
@@ -246,6 +260,8 @@ const Index: React.FC = () => {
   };
   
   const handleAISelectUsers = (userIds: number[]) => {
+    console.log('handleAISelectUsers called with:', userIds);
+    console.log('Current entrepreneurs:', entrepreneurs.map(e => ({ id: e.id, name: e.name })));
     setIsTransitioning(true);
     setTimeout(() => {
       setAiSelectedUserIds(userIds);
