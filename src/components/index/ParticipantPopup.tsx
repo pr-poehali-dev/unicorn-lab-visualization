@@ -87,9 +87,9 @@ const ParticipantPopup: React.FC<ParticipantPopupProps> = ({
       {/* Кнопка перехода на пост */}
       {participant.postUrl && (
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="w-full mt-3 uppercase border border-primary/40 hover:bg-primary/20 text-primary"
+          className="w-full mt-3 uppercase"
           onClick={() => window.open(participant.postUrl, '_blank')}
         >
           ПОЗНАКОМИТЬСЯ В UNICORN LAB
