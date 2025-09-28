@@ -4,6 +4,7 @@ interface UploadResultProps {
   result: {
     imported: number;
     updated: number;
+    skipped?: number;
     total: number;
     connections_created: number;
     clusters?: Record<string, number>;
@@ -15,9 +16,12 @@ const UploadResult: React.FC<UploadResultProps> = ({ result }) => {
     <div className="bg-muted p-4 rounded-lg">
       <h4 className="font-semibold mb-2">✅ Результаты импорта:</h4>
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <div>Новых участников: <span className="font-semibold">{result.imported}</span></div>
-        <div>Обновлено: <span className="font-semibold">{result.updated}</span></div>
-        <div>Всего обработано: <span className="font-semibold">{result.total}</span></div>
+        <div>Новых участников: <span className="font-semibold text-green-600">{result.imported}</span></div>
+        <div>Обновлено: <span className="font-semibold text-blue-600">{result.updated}</span></div>
+        {result.skipped !== undefined && result.skipped > 0 && (
+          <div>Пропущено дубликатов: <span className="font-semibold text-orange-600">{result.skipped}</span></div>
+        )}
+        <div>Всего в файле: <span className="font-semibold">{result.total}</span></div>
         <div>Создано связей: <span className="font-semibold">{result.connections_created}</span></div>
       </div>
       {result.clusters && (

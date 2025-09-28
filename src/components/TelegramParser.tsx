@@ -47,11 +47,12 @@ const TelegramParser: React.FC = () => {
       setUploadProgress(20);
       toast.info(`Загружено ${participants.length} участников, начинаем пакетную обработку...`);
       
-      // Обрабатываем в батчах по 3 для избежания таймаутов
-      const batchSize = 3;
+      // Обрабатываем в батчах по 50 участников
+      const batchSize = 50;
       const totalBatches = Math.ceil(participants.length / batchSize);
       let totalImported = 0;
       let totalUpdated = 0;
+      const totalSkipped = 0;
       let totalConnections = 0;
       const allClusters: Record<string, number> = {};
       
@@ -82,6 +83,7 @@ const TelegramParser: React.FC = () => {
           const result = await response.json();
           totalImported += result.imported || 0;
           totalUpdated += result.updated || 0;
+          totalSkipped += result.skipped || 0;
           totalConnections += result.connections_created || 0;
           
           // Объединяем кластеры
@@ -101,12 +103,13 @@ const TelegramParser: React.FC = () => {
       setUploadResult({
         imported: totalImported,
         updated: totalUpdated,
+        skipped: totalSkipped,
         total: participants.length,
         connections_created: totalConnections,
         clusters: allClusters
       });
       
-      toast.success(`Обработка завершена! Импортировано: ${totalImported}, обновлено: ${totalUpdated}`);
+      toast.success(`Обработка завершена! Новых: ${totalImported}, обновлено: ${totalUpdated}, пропущено: ${totalSkipped}`);
       
       // Перезагружаем страницу через 2 секунды
       setTimeout(() => {
