@@ -31,8 +31,8 @@ const GraphStats: React.FC<GraphStatsProps> = ({
           .sort(([, a], [, b]) => b - a)
           .map(([cluster]) => cluster);
         
-        const topClusters = sortedClusters.slice(0, 5);
-        const remainingCount = sortedClusters.length - 5;
+        const topClusters = sortedClusters.slice(0, 3);
+        const remainingCount = sortedClusters.length - 3;
         
         return (
           <div className="absolute bottom-8 left-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
