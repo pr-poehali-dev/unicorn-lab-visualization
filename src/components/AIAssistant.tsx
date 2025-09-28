@@ -186,15 +186,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
       )}
       
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1">
-        <div className={`p-6 ${messages.length === 0 ? 'min-h-full flex items-center justify-center' : ''}`}>
-          {messages.length === 0 ? (
-            <div className="text-center text-muted-foreground">
-              <Icon name="MessageCircleHeart" size={48} className="mx-auto mb-4 opacity-20" />
-              <p className="text-sm">Задайте вопрос об участниках сообщества</p>
-              <p className="text-xs mt-2">Например: «Найди разработчиков для ИИ проекта»</p>
-            </div>
-          ) : (
+      {messages.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center text-muted-foreground">
+            <Icon name="MessageCircleHeart" size={48} className="mx-auto mb-4 opacity-20" />
+            <p className="text-sm">Задайте вопрос об участниках сообщества</p>
+            <p className="text-xs mt-2">Например: «Найди разработчиков для ИИ проекта»</p>
+          </div>
+        </div>
+      ) : (
+        <ScrollArea ref={scrollRef} className="flex-1 p-6">
             <div className="space-y-8">
           {messages.map((message, index) => (
             <div key={index} className="w-full">
@@ -232,9 +233,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
             </div>
             )}
             </div>
-          )}
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+      )}
 
       {/* Input Area */}
       <div className="border-t p-4">
