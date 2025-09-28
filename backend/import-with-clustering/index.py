@@ -42,7 +42,7 @@ def filter_new_participants(participants: List[Dict]) -> List[Dict]:
         conn.close()
 
 
-def get_tags_and_clusters_from_db() -> Tuple[List[str], List[str]]:
+def get_tags_and_clusters_from_db() -> Tuple[List[str], Dict[str, int]]:
     """Load tags and clusters from database"""
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
@@ -63,25 +63,24 @@ def get_tags_and_clusters_from_db() -> Tuple[List[str], List[str]]:
         """)
         tags = [row[0] for row in cur.fetchall()]
         
-        # Get cluster tags
+        # Get cluster tags with IDs
         cur.execute("""
-            SELECT t.name 
+            SELECT t.id, t.name 
             FROM t_p95295728_unicorn_lab_visualiz.tags t
             JOIN t_p95295728_unicorn_lab_visualiz.tag_categories tc ON t.category_id = tc.id
             WHERE tc.key = 'cluster'
             ORDER BY t.name
         """)
-        clusters = [row[0] for row in cur.fetchall()]
+        cluster_rows = cur.fetchall()
+        clusters_dict = {name: id for id, name in cluster_rows}
         
-        print(f"Loaded {len(tags)} tags and {len(clusters)} clusters from DB")
+        print(f"Loaded {len(tags)} tags and {len(clusters_dict)} clusters from DB")
         
-        # If no clusters found, use default ones
-        if not clusters:
-            clusters = ["IT", "Финансы", "Маркетинг", "Производство", "Услуги", 
-                       "Образование", "Здоровье", "Недвижимость", "Другое"]
-            print("Using default clusters")
+        # If no clusters found, raise error
+        if not clusters_dict:
+            raise Exception("No clusters found in database")
         
-        return tags, clusters
+        return tags, clusters_dict
         
     except Exception as e:
         print(f"Error loading tags from DB: {str(e)}")
@@ -94,9 +93,8 @@ def get_tags_and_clusters_from_db() -> Tuple[List[str], List[str]]:
             "автоматизация", "робототехника", "IoT", "блокчейн", "масштабирование",
             "нетворкинг", "коучинг", "франшизы", "экспорт", "импорт", "ритейл"
         ]
-        default_clusters = ["IT", "Финансы", "Маркетинг", "Производство", "Услуги", 
-                           "Образование", "Здоровье", "Недвижимость", "Другое"]
-        return default_tags, default_clusters
+        # Return empty clusters dict to force error
+        return default_tags, {}
     finally:
         cur.close()
         conn.close()
@@ -145,9 +143,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         print(f"Received {len(participants)} participants")
         
         # Get tags and clusters from database
-        allowed_tags, clusters = get_tags_and_clusters_from_db()
+        allowed_tags, clusters_dict = get_tags_and_clusters_from_db()
         
-        print(f"Loaded {len(allowed_tags)} tags and {len(clusters)} clusters from DB")
+        print(f"Loaded {len(allowed_tags)} tags and {len(clusters_dict)} clusters from DB")
         
         # Filter out existing participants
         new_participants = filter_new_participants(participants)
@@ -175,10 +173,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         print(f"Found {len(new_participants)} new participants to process")
         
         # Process only new participants with AI clustering
-        clustered_participants = process_with_structured_output(new_participants, allowed_tags, clusters)
+        clustered_participants = process_with_structured_output(new_participants, allowed_tags, clusters_dict)
         
         # Save to database
-        result = save_to_database(clustered_participants, participants, allowed_tags, clusters)
+        result = save_to_database(clustered_participants, participants, allowed_tags, clusters_dict)
         
         return {
             'statusCode': 200,
@@ -202,17 +200,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
 
 
-def process_with_structured_output(participants: List[Dict], allowed_tags: List[str], clusters: List[str]) -> List[Dict]:
+def process_with_structured_output(participants: List[Dict], allowed_tags: List[str], clusters_dict: Dict[str, int]) -> List[Dict]:
     """Process participants using OpenAI structured output with DB tags and clusters"""
     api_key = os.environ.get('OPENAI_API_KEY', '')
     if not api_key:
         raise Exception("OPENAI_API_KEY not configured")
     
-    # Define Pydantic models with enum for clusters
-    from enum import Enum
-    
-    # Create Enum dynamically from cluster list
-    ClusterEnum = Enum('ClusterEnum', {cluster: cluster for cluster in clusters})
+    # Define Pydantic models
+    clusters = list(clusters_dict.keys())
     
     class Participant(BaseModel):
         name: str
@@ -331,7 +326,7 @@ NAME EXTRACTION EXAMPLES:
         raise Exception(f"Failed to process participants with AI: {str(e)}")
 
 
-def save_to_database(parsed: List[Dict], all_participants: List[Dict], allowed_tags: List[str], clusters: List[str]) -> Dict[str, Any]:
+def save_to_database(parsed: List[Dict], all_participants: List[Dict], allowed_tags: List[str], clusters_dict: Dict[str, int]) -> Dict[str, Any]:
     """Save to database with clustering and tag relations
     
     Args:
@@ -386,7 +381,11 @@ def save_to_database(parsed: List[Dict], all_participants: List[Dict], allowed_t
             # Get parsed data
             parsed_data = parsed_lookup.get(telegram_id)
             if parsed_data:
-                cluster = parsed_data['cluster']
+                cluster_name = parsed_data['cluster']
+                cluster_id = clusters_dict.get(cluster_name)
+                if not cluster_id:
+                    print(f"Warning: Unknown cluster '{cluster_name}', skipping")
+                    continue
                 tags = parsed_data['tags']
                 summary = parsed_data['summary']
                 goal = parsed_data['goal']
@@ -396,7 +395,7 @@ def save_to_database(parsed: List[Dict], all_participants: List[Dict], allowed_t
                 continue
 
             # Count clusters
-            clusters_count[cluster] = clusters_count.get(cluster, 0) + 1
+            clusters_count[cluster_name] = clusters_count.get(cluster_name, 0) + 1
             
             # Check if exists by telegram_id
             cur.execute("""
@@ -411,14 +410,15 @@ def save_to_database(parsed: List[Dict], all_participants: List[Dict], allowed_t
                 cur.execute("""
                     UPDATE t_p95295728_unicorn_lab_visualiz.entrepreneurs 
                     SET name = %s, description = %s, post_url = %s, 
-                        cluster = %s, goal = %s, emoji = %s, updated_at = CURRENT_TIMESTAMP
+                        cluster = %s, cluster_id = %s, goal = %s, emoji = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE telegram_id = %s
                     RETURNING id
                 """, (
                     parsed_data.get('name', participant.get('author', 'Unknown')),  # Use AI-extracted name
                     summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
-                    cluster,
+                    cluster_name,
+                    cluster_id,
                     goal,
                     emoji,
                     telegram_id
@@ -429,8 +429,8 @@ def save_to_database(parsed: List[Dict], all_participants: List[Dict], allowed_t
                 cur.execute("""
                     INSERT INTO t_p95295728_unicorn_lab_visualiz.entrepreneurs (
                         telegram_id, name, description, post_url, 
-                        cluster, goal, emoji, created_at, updated_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s,
+                        cluster, cluster_id, goal, emoji, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
                             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                     RETURNING id
                 """, (
@@ -438,7 +438,8 @@ def save_to_database(parsed: List[Dict], all_participants: List[Dict], allowed_t
                     parsed_data.get('name', participant.get('author', 'Unknown')),  # Use AI-extracted name
                     summary,  # Use AI-generated summary
                     participant.get('messageLink', ''),
-                    cluster,
+                    cluster_name,
+                    cluster_id,
                     goal,
                     emoji
                 ))

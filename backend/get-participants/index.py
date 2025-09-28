@@ -78,7 +78,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Build query with full schema names
         query = """
-            SELECT e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, 
+            SELECT e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, e.cluster_id,
                    e.description, e.post_url, e.goal, e.emoji, e.created_at, e.updated_at,
                    COALESCE(array_agg(t.name) FILTER (WHERE t.name IS NOT NULL), '{}') as tags
             FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs e
@@ -100,7 +100,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             query += " AND e.cluster = %s"
             query_params.append(cluster_filter)
         
-        query += " GROUP BY e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, e.description, e.post_url, e.goal, e.emoji, e.created_at, e.updated_at"
+        query += " GROUP BY e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, e.cluster_id, e.description, e.post_url, e.goal, e.emoji, e.created_at, e.updated_at"
         query += " ORDER BY e.name"
         
         # Execute query
@@ -117,13 +117,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'name': row[3],
                 'role': row[4],
                 'cluster': row[5],
-                'description': row[6],
-                'tags': row[12] if row[12] != '{}' else [],
-                'post_url': row[7],
-                'goal': row[8],
-                'emoji': row[9] or '😊',
-                'created_at': row[10].isoformat() if row[10] else None,
-                'updated_at': row[11].isoformat() if row[11] else None
+                'cluster_id': row[6],
+                'description': row[7],
+                'tags': row[13] if row[13] != '{}' else [],
+                'post_url': row[8],
+                'goal': row[9],
+                'emoji': row[10] or '😊',
+                'created_at': row[11].isoformat() if row[11] else None,
+                'updated_at': row[12].isoformat() if row[12] else None
             })
         
         # Load tag connections for dynamic calculation
