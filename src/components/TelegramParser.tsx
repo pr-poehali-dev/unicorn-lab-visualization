@@ -52,7 +52,7 @@ const TelegramParser: React.FC = () => {
       const totalBatches = Math.ceil(participants.length / batchSize);
       let totalImported = 0;
       let totalUpdated = 0;
-      const totalSkipped = 0;
+      let totalSkipped = 0;
       let totalConnections = 0;
       const allClusters: Record<string, number> = {};
       
