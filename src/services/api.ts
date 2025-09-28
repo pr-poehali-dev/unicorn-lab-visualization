@@ -79,7 +79,8 @@ export class ApiService {
     edges: GraphEdge[];
   } {
     const entrepreneurs: Entrepreneur[] = data.participants.map((p) => ({
-      id: p.telegram_id || p.id.toString(),
+      id: p.id.toString(), // Всегда используем числовой id из БД
+      telegram_id: p.telegram_id, // Сохраняем telegram_id отдельно для справки
       name: p.name,
       avatar: p.emoji || "👤",
       role: p.role,
@@ -94,7 +95,7 @@ export class ApiService {
 
     const idMap = new Map<number, string>();
     data.participants.forEach((p) => {
-      idMap.set(p.id, p.telegram_id || p.id.toString());
+      idMap.set(p.id, p.id.toString()); // Маппим числовой id на строковый
     });
 
     const edges: GraphEdge[] = data.connections.map((c) => ({

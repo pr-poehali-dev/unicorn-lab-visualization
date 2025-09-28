@@ -55,7 +55,7 @@ def create_system_prompt(entrepreneurs: List[Dict[str, Any]]) -> str:
     
     # Add each entrepreneur
     for e in entrepreneurs:
-        base_prompt += f"\nID: {e['id']}\nИмя: {e['name']}\nОписание: {e['description']}\nЦель: {e['goal']}\n---"
+        base_prompt += f"\nID: {str(e['id'])}\nИмя: {e['name']}\nОписание: {e['description']}\nЦель: {e['goal']}\n---"
     
     base_prompt += """
 
@@ -74,7 +74,7 @@ def create_system_prompt(entrepreneurs: List[Dict[str, Any]]) -> str:
 ФОРМАТ ОТВЕТА:
 {
     "completion_text": "Твой текстовый ответ с объяснениями",
-    "related_users_ids": [141, 142, 143]  // ID найденных участников
+    "related_users_ids": ["141", "142", "143"]  // ID найденных участников как строки
 }"""
     
     return base_prompt

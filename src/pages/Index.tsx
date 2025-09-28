@@ -32,7 +32,7 @@ const Index: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [tagsConfig, setTagsConfig] = useState<TagsConfig | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false); // будет обновлено после проверки isMobile
-  const [aiSelectedUserIds, setAiSelectedUserIds] = useState<number[]>([]);
+  const [aiSelectedUserIds, setAiSelectedUserIds] = useState<string[]>([]);
 
   // Используем кластеры из БД
   const clusters = useMemo(() => {
@@ -259,7 +259,7 @@ const Index: React.FC = () => {
     setShowClusterDropdown(false);
   };
   
-  const handleAISelectUsers = (userIds: number[]) => {
+  const handleAISelectUsers = (userIds: string[]) => {
     console.log('handleAISelectUsers called with:', userIds);
     console.log('Current entrepreneurs:', entrepreneurs.map(e => ({ id: e.id, name: e.name })));
     setIsTransitioning(true);

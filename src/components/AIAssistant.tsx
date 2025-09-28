@@ -9,12 +9,12 @@ import { toast } from 'sonner';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  related_users_ids?: number[];
+  related_users_ids?: string[];
 }
 
 interface AIAssistantProps {
   entrepreneurs?: any[];
-  onSelectUsers: (userIds: number[]) => void;
+  onSelectUsers: (userIds: string[]) => void;
   isVisible?: boolean;
 }
 

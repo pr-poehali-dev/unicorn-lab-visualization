@@ -1,5 +1,6 @@
 export interface Entrepreneur {
   id: string;
+  telegram_id?: string;
   name: string;
   avatar: string;
   description: string;
