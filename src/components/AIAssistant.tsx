@@ -13,12 +13,12 @@ interface Message {
 }
 
 interface AIAssistantProps {
+  entrepreneurs?: any[];
   onSelectUsers: (userIds: number[]) => void;
-  onClose: () => void;
-  isMobile?: boolean;
+  isVisible?: boolean;
 }
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ onSelectUsers, onClose, isMobile = false }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers, isVisible }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -110,7 +110,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ onSelectUsers, onClose, isMob
   };
 
   return (
-    <Card className={`${isMobile ? 'fixed inset-0 z-50' : 'h-full'} flex flex-col`}>
+    <Card className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
@@ -126,15 +126,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ onSelectUsers, onClose, isMob
               title="Очистить историю"
             >
               <Icon name="Trash2" size={16} />
-            </Button>
-          )}
-          {isMobile && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-            >
-              <Icon name="X" size={20} />
             </Button>
           )}
         </div>

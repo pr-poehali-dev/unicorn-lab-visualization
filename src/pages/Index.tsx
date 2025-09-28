@@ -147,7 +147,7 @@ const Index: React.FC = () => {
   
   // Показываем AI ассистент по умолчанию на десктопе
   useEffect(() => {
-    if (!isMobile && showAIAssistant === false) {
+    if (!isMobile) {
       setShowAIAssistant(true);
     }
   }, [isMobile]);
@@ -255,38 +255,63 @@ const Index: React.FC = () => {
   };
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] bg-card">
+    <div className="flex h-[calc(100vh-4rem)] bg-card">
       {loading ? (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <Icon name="Loader2" size={48} className="animate-spin text-primary" />
             <p className="text-muted-foreground">Загружаем данные участников...</p>
           </div>
         </div>
       ) : (
-        <div className="relative w-full h-full">
-          <div 
-            className="absolute inset-0 transition-opacity duration-300"
-            style={{
-              opacity: isTransitioning ? 0 : 1,
-              transition: 'opacity 150ms ease-in-out'
-            }}
-          >
-            <ForceGraph
-              key={`${selectedCluster}-${selectedTags.join(',')}`}
-              ref={forceGraphRef}
-              nodes={filteredEntrepreneurs}
-              edges={filteredEdges}
-              onNodeClick={handleNodeClick}
-              selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
-              clusterColors={tagsConfig?.clusterColors || {}}
-            />
-          </div>
-        </div>
-      )}
+        <>
+          {/* Левая панель с AI ассистентом - только на десктопе */}
+          {!isMobile && showAIAssistant && (
+            <div className="w-96 border-r border-border flex-shrink-0">
+              <AIAssistant
+                entrepreneurs={filteredEntrepreneurs}
+                onSelectUsers={handleAISelectUsers}
+                isVisible={true}
+              />
+            </div>
+          )}
 
-      {/* Компоненты управления и отображения */}
-      <FilterControls
+          {/* Правая часть с канвасом */}
+          <div className="flex-1 relative">
+            <div 
+              className="absolute inset-0 transition-opacity duration-300"
+              style={{
+                opacity: isTransitioning ? 0 : 1,
+                transition: 'opacity 150ms ease-in-out'
+              }}
+            >
+              <ForceGraph
+                key={`${selectedCluster}-${selectedTags.join(',')}`}
+                ref={forceGraphRef}
+                nodes={filteredEntrepreneurs}
+                edges={filteredEdges}
+                onNodeClick={handleNodeClick}
+                selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
+                clusterColors={tagsConfig?.clusterColors || {}}
+              />
+            </div>
+            
+            {/* Кнопка AI ассистента для мобильных */}
+            {isMobile && (
+              <div className="absolute bottom-20 right-4 z-20">
+                <Button
+                  onClick={() => setShowAIAssistant(!showAIAssistant)}
+                  variant={showAIAssistant ? "default" : "secondary"}
+                  size="lg"
+                  className="rounded-full w-14 h-14 p-0 shadow-lg"
+                >
+                  <Icon name="Bot" size={24} />
+                </Button>
+              </div>
+            )}
+
+            {/* Компоненты управления и отображения */}
+            <FilterControls
         clusters={clusters}
         selectedCluster={selectedCluster}
         selectedTags={selectedTags}
@@ -300,43 +325,31 @@ const Index: React.FC = () => {
         onToggleTagsDropdown={toggleTagsDropdown}
         onClearTags={handleClearTags}
         onSetTagFilterMode={setTagFilterMode}
-      />
-      
-      {/* Кнопка AI ассистента и индикатор AI фильтра */}
-      <div className="absolute top-8 left-8" style={{ marginLeft: '340px' }}>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setShowAIAssistant(!showAIAssistant)}
-            variant={showAIAssistant ? "default" : "outline"}
-            size="sm"
-            className="h-8"
-          >
-            <Icon name="Bot" size={16} className="mr-2" />
-            AI Ассистент
-          </Button>
-          
-          {aiSelectedUserIds.length > 0 && (
-            <div className="bg-primary/10 border border-primary/20 rounded-md px-3 h-8 flex items-center gap-2">
-              <Icon name="Filter" size={14} className="text-primary" />
-              <span className="text-sm text-primary">AI: {aiSelectedUserIds.length} участников</span>
-              <button
-                onClick={() => {
-                  setIsTransitioning(true);
-                  setTimeout(() => {
-                    setAiSelectedUserIds([]);
-                    setIsTransitioning(false);
-                  }, 150);
-                }}
-                className="ml-2 hover:text-primary/70 transition-colors"
-              >
-                <Icon name="X" size={14} />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+            />
 
-      <GraphControls
+            {/* Индикатор AI фильтра */}
+            {aiSelectedUserIds.length > 0 && (
+              <div className="absolute top-8 left-8" style={{ marginLeft: '340px' }}>
+                <div className="bg-primary/10 border border-primary/20 rounded-md px-3 h-8 flex items-center gap-2">
+                  <Icon name="Filter" size={14} className="text-primary" />
+                  <span className="text-sm text-primary">AI: {aiSelectedUserIds.length} участников</span>
+                  <button
+                    onClick={() => {
+                      setIsTransitioning(true);
+                      setTimeout(() => {
+                        setAiSelectedUserIds([]);
+                        setIsTransitioning(false);
+                      }, 150);
+                    }}
+                    className="ml-2 hover:text-primary/70 transition-colors"
+                  >
+                    <Icon name="X" size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <GraphControls
         showParser={showParser}
         loading={loading}
         filteredCount={filteredEntrepreneurs.length}
@@ -344,54 +357,61 @@ const Index: React.FC = () => {
         onToggleParser={() => setShowParser(!showParser)}
       />
 
-      <GraphStats
-        tagsConfig={tagsConfig}
-        filteredEntrepreneurs={filteredEntrepreneurs}
-        totalEntrepreneurs={entrepreneurs.length}
-        loading={loading}
-      />
-
-      {/* Попап с информацией об участнике */}
-      {selectedParticipant && popupPosition && (
-        <ParticipantPopup
-          participant={selectedParticipant}
-          position={popupPosition}
-          tagsConfig={tagsConfig}
-          onClose={() => {
-            setSelectedParticipant(null);
-            setPopupPosition(null);
-          }}
-          popupRef={participantPopupRef}
-        />
-      )}
-
-      {/* Компонент парсера */}
-      {showParser && (
-        <div className="fixed bottom-4 right-4 z-20 w-[500px] max-h-[600px] overflow-y-auto shadow-2xl">
-          <TelegramParser />
-        </div>
-      )}
-      
-      {/* AI Ассистент */}
-      {showAIAssistant && (
-        <>
-          {isMobile ? (
-            // На мобильных - полноэкранный режим
-            <AIAssistant
-              onSelectUsers={handleAISelectUsers}
-              onClose={() => setShowAIAssistant(false)}
-              isMobile={true}
+            <GraphStats
+              tagsConfig={tagsConfig}
+              filteredEntrepreneurs={filteredEntrepreneurs}
+              totalEntrepreneurs={entrepreneurs.length}
+              loading={loading}
             />
-          ) : (
-            // На десктопе - сайдбар слева
-            <div className="fixed left-4 top-20 bottom-4 w-[380px] z-20 shadow-2xl">
-              <AIAssistant
-                onSelectUsers={handleAISelectUsers}
-                onClose={() => setShowAIAssistant(false)}
-                isMobile={false}
+
+            {/* Попап с информацией об участнике */}
+            {selectedParticipant && popupPosition && (
+              <ParticipantPopup
+                participant={selectedParticipant}
+                position={popupPosition}
+                tagsConfig={tagsConfig}
+                onClose={() => {
+                  setSelectedParticipant(null);
+                  setPopupPosition(null);
+                }}
+                popupRef={participantPopupRef}
               />
-            </div>
-          )}
+            )}
+
+            {/* Компонент парсера */}
+            {showParser && (
+              <div className="fixed bottom-4 right-4 z-20 w-[500px] max-h-[600px] overflow-y-auto shadow-2xl">
+                <TelegramParser />
+              </div>
+            )}
+
+            {/* Мобильный AI ассистент в модальном окне */}
+            {isMobile && showAIAssistant && (
+              <div className="fixed inset-0 z-50 bg-background">
+                <div className="h-full relative">
+                  {/* Кнопка закрытия */}
+                  <Button
+                    onClick={() => setShowAIAssistant(false)}
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 z-10"
+                  >
+                    <Icon name="X" size={20} />
+                  </Button>
+                  
+                  {/* AI Ассистент */}
+                  <AIAssistant
+                    entrepreneurs={filteredEntrepreneurs}
+                    onSelectUsers={(userIds) => {
+                      handleAISelectUsers(userIds);
+                      setShowAIAssistant(false); // Закрываем после выбора
+                    }}
+                    isVisible={true}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
