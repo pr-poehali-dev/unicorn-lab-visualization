@@ -6,13 +6,17 @@ import GraphControls from '@/components/index/GraphControls';
 import ParticipantPopup from '@/components/index/ParticipantPopup';
 import { Entrepreneur, GraphEdge } from '@/types/entrepreneur';
 import Icon from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
 import TelegramParser from '@/components/TelegramParser';
+import AIAssistant from '@/components/AIAssistant';
 import { ApiService } from '@/services/api';
 import { TagsService, TagsConfig } from '@/services/tagsService';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const isMobile = useIsMobile();
 
   const [selectedCluster, setSelectedCluster] = useState('Все');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -27,6 +31,8 @@ const Index: React.FC = () => {
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [loading, setLoading] = useState(true);
   const [tagsConfig, setTagsConfig] = useState<TagsConfig | null>(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [aiSelectedUserIds, setAiSelectedUserIds] = useState<number[]>([]);
 
   // Используем кластеры из БД
   const clusters = useMemo(() => {
@@ -47,6 +53,11 @@ const Index: React.FC = () => {
   // Фильтрация предпринимателей
   const filteredEntrepreneurs = useMemo(() => {
     return entrepreneurs.filter(entrepreneur => {
+      // Если выбраны участники через AI, показываем только их
+      if (aiSelectedUserIds.length > 0) {
+        return aiSelectedUserIds.includes(entrepreneur.id);
+      }
+      
       // Фильтр по кластеру
       if (selectedCluster !== 'Все' && entrepreneur.cluster !== selectedCluster) {
         return false;
@@ -75,7 +86,7 @@ const Index: React.FC = () => {
 
       return true;
     });
-  }, [entrepreneurs, selectedCluster, selectedTags, tagFilterMode]);
+  }, [entrepreneurs, selectedCluster, selectedTags, tagFilterMode, aiSelectedUserIds]);
 
   // Фильтрация edges - только связи между видимыми узлами
   const filteredEdges = useMemo(() => {
@@ -224,6 +235,17 @@ const Index: React.FC = () => {
     setShowTagsDropdown(!showTagsDropdown);
     setShowClusterDropdown(false);
   };
+  
+  const handleAISelectUsers = (userIds: number[]) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setAiSelectedUserIds(userIds);
+      // Сбрасываем другие фильтры при выборе через AI
+      setSelectedCluster('Все');
+      setSelectedTags([]);
+      setIsTransitioning(false);
+    }, 150);
+  };
 
   return (
     <div className="relative h-[calc(100vh-4rem)] bg-card">
@@ -272,6 +294,40 @@ const Index: React.FC = () => {
         onClearTags={handleClearTags}
         onSetTagFilterMode={setTagFilterMode}
       />
+      
+      {/* Кнопка AI ассистента и индикатор AI фильтра */}
+      <div className="absolute top-8 left-8" style={{ marginLeft: '340px' }}>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowAIAssistant(!showAIAssistant)}
+            variant={showAIAssistant ? "default" : "outline"}
+            size="sm"
+            className="h-8"
+          >
+            <Icon name="Bot" size={16} className="mr-2" />
+            AI Ассистент
+          </Button>
+          
+          {aiSelectedUserIds.length > 0 && (
+            <div className="bg-primary/10 border border-primary/20 rounded-md px-3 h-8 flex items-center gap-2">
+              <Icon name="Filter" size={14} className="text-primary" />
+              <span className="text-sm text-primary">AI: {aiSelectedUserIds.length} участников</span>
+              <button
+                onClick={() => {
+                  setIsTransitioning(true);
+                  setTimeout(() => {
+                    setAiSelectedUserIds([]);
+                    setIsTransitioning(false);
+                  }, 150);
+                }}
+                className="ml-2 hover:text-primary/70 transition-colors"
+              >
+                <Icon name="X" size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       <GraphControls
         showParser={showParser}
@@ -307,6 +363,29 @@ const Index: React.FC = () => {
         <div className="fixed bottom-4 right-4 z-20 w-[500px] max-h-[600px] overflow-y-auto shadow-2xl">
           <TelegramParser />
         </div>
+      )}
+      
+      {/* AI Ассистент */}
+      {showAIAssistant && (
+        <>
+          {isMobile ? (
+            // На мобильных - полноэкранный режим
+            <AIAssistant
+              onSelectUsers={handleAISelectUsers}
+              onClose={() => setShowAIAssistant(false)}
+              isMobile={true}
+            />
+          ) : (
+            // На десктопе - сайдбар слева
+            <div className="fixed left-4 top-20 bottom-4 w-[380px] z-20 shadow-2xl">
+              <AIAssistant
+                onSelectUsers={handleAISelectUsers}
+                onClose={() => setShowAIAssistant(false)}
+                isMobile={false}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

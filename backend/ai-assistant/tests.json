@@ -1,0 +1,44 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": ""
+    },
+    {
+      "name": "Test POST with search query",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Найди разработчиков AI"
+          }
+        ]
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "completion_text": "string",
+        "related_users_ids": []
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test POST with empty messages",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "messages": []
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "completion_text": "string",
+        "related_users_ids": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
