@@ -26,6 +26,7 @@
         "success": true,
         "imported": "number",
         "updated": "number",
+        "skipped": "number",
         "clusters": "object",
         "total": "number"
       },

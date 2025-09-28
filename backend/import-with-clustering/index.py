@@ -254,6 +254,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
     
     imported_count = 0
     updated_count = 0
+    skipped_count = 0
     clusters_count = {}
     errors = []
     
@@ -274,6 +275,20 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
             if not telegram_id:
                 continue
             
+            # Check if already exists by post_url first
+            post_url = participant.get('messageLink', '')
+            if post_url:
+                cur.execute("""
+                    SELECT id, telegram_id FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs 
+                    WHERE post_url = %s
+                """, (post_url,))
+                existing_by_url = cur.fetchone()
+                
+                if existing_by_url:
+                    # Already processed this participant
+                    skipped_count += 1
+                    continue
+            
             # Get parsed data
             parsed_data = parsed_lookup.get(telegram_id)
             if parsed_data:
@@ -289,11 +304,11 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
             # Count clusters
             clusters_count[cluster] = clusters_count.get(cluster, 0) + 1
             
-            # Check if exists
-            cur.execute(
-                "SELECT id FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs WHERE telegram_id = %s",
-                (telegram_id,)
-            )
+            # Check if exists by telegram_id
+            cur.execute("""
+                SELECT id FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs 
+                WHERE telegram_id = %s
+            """, (telegram_id,))
             existing = cur.fetchone()
             
             if existing:
@@ -369,6 +384,7 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
         'success': True,
         'imported': imported_count,
         'updated': updated_count,
+        'skipped': skipped_count,
         'errors': errors,
         'clusters': clusters_count,
         'total': len(original)
