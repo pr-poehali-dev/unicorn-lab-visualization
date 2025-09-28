@@ -13,60 +13,54 @@ const NodePopup: React.FC<NodePopupProps> = ({ participant, position, onClose })
   // Определяем позицию попапа чтобы не выходил за границы экрана
   const popupWidth = 320;
   const popupHeight = 400;
-  const padding = 40; // Увеличиваем отступ от краев
+  const padding = 10; // Минимальный отступ от края экрана
   const nodeOffset = 20; // Отступ от ноды
   
   // По умолчанию центрируем попап относительно позиции клика
   let left = position.x - popupWidth / 2;
   let top = position.y - popupHeight - nodeOffset;
   
-  // Проверяем, где находится нода относительно центра экрана
-  const screenCenterX = window.innerWidth / 2;
-  const isNodeNearLeftEdge = position.x < popupWidth / 2 + padding;
-  const isNodeNearRightEdge = position.x > window.innerWidth - popupWidth / 2 - padding;
+  // Определяем положение стрелки (по умолчанию по центру)
+  let arrowPosition = position.x;
   
-  // Определяем положение стрелки
-  let arrowPosition = '50%'; // по умолчанию по центру
+  // ЖЁСТКАЯ проверка границ - попап ВСЕГДА должен быть полностью видим
   
-  // Если нода слишком близко к левому краю
-  if (isNodeNearLeftEdge) {
-    // Показываем попап справа от ноды
-    left = position.x + nodeOffset;
-    // Ограничиваем минимальным отступом от края
-    if (left < padding) {
-      left = padding;
-    }
-    // Вычисляем позицию стрелки относительно попапа
-    arrowPosition = `${Math.max(12, position.x - left)}px`;
+  // Проверка правой границы
+  if (left + popupWidth > window.innerWidth - padding) {
+    left = window.innerWidth - popupWidth - padding;
   }
-  // Если нода слишком близко к правому краю
-  else if (isNodeNearRightEdge) {
-    // Показываем попап слева от ноды
-    left = position.x - popupWidth - nodeOffset;
-    // Ограничиваем максимальным отступом от края
-    if (left + popupWidth > window.innerWidth - padding) {
-      left = window.innerWidth - popupWidth - padding;
-    }
-    // Вычисляем позицию стрелки относительно попапа
-    arrowPosition = `${Math.min(popupWidth - 12, position.x - left)}px`;
+  
+  // Проверка левой границы
+  if (left < padding) {
+    left = padding;
   }
-  // Если нода в центре, но попап выходит за края
-  else {
-    // Проверка правой границы экрана
-    if (left + popupWidth > window.innerWidth - padding) {
-      left = window.innerWidth - popupWidth - padding;
-      arrowPosition = `${position.x - left}px`;
-    }
-    // Проверка левой границы экрана
-    else if (left < padding) {
-      left = padding;
-      arrowPosition = `${position.x - left}px`;
+  
+  // Пересчитываем позицию стрелки после корректировки left
+  arrowPosition = position.x - left;
+  
+  // Ограничиваем стрелку в пределах попапа
+  arrowPosition = Math.max(12, Math.min(popupWidth - 12, arrowPosition));
+  
+  // Проверка нижней границы (если попап внизу выходит за экран)
+  if (top + popupHeight > window.innerHeight - padding) {
+    // Если не помещается снизу, пробуем показать сверху от ноды
+    top = position.y - popupHeight - nodeOffset;
+    
+    // Если и сверху не помещается, показываем максимально низко
+    if (top < padding) {
+      top = window.innerHeight - popupHeight - padding;
     }
   }
   
   // Проверка верхней границы
   if (top < padding) {
-    top = position.y + nodeOffset + 40; // Показываем снизу от ноды
+    // Показываем снизу от ноды
+    top = position.y + nodeOffset + 40;
+    
+    // Если и снизу не помещается, прижимаем к верху
+    if (top + popupHeight > window.innerHeight - padding) {
+      top = padding;
+    }
   }
 
   return (
@@ -146,7 +140,7 @@ const NodePopup: React.FC<NodePopupProps> = ({ participant, position, onClose })
           className="absolute w-3 h-3 bg-card border-l border-b rotate-45"
           style={{
             bottom: '-7px',
-            left: arrowPosition,
+            left: `${arrowPosition}px`,
             transform: `translateX(-50%) rotate(45deg)`
           }}
         />
