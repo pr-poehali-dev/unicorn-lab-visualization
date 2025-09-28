@@ -53,12 +53,37 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
     }
   }, [messages]);
 
+  // Scroll to bottom function with smooth animation
+  const scrollToBottom = (smooth = true) => {
+    if (scrollRef.current) {
+      const scrollElement = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTo({
+          top: scrollElement.scrollHeight,
+          behavior: smooth ? 'smooth' : 'auto'
+        });
+      }
+    }
+  };
+
   // Scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
+
+  // Scroll to bottom when loading state changes
+  useEffect(() => {
+    if (isLoading) {
+      // Small delay to ensure loading indicator is rendered
+      setTimeout(() => scrollToBottom(), 50);
+    }
+  }, [isLoading]);
+
+  // Scroll to bottom on initial load (when messages are loaded from localStorage)
+  useEffect(() => {
+    // Use instant scroll on initial load
+    setTimeout(() => scrollToBottom(false), 100);
+  }, []);
 
   // Auto-focus on input when component mounts
   useEffect(() => {
@@ -86,6 +111,9 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
     setIsLoading(true);
+    
+    // Scroll to bottom after user message
+    setTimeout(() => scrollToBottom(), 50);
 
     try {
       const response = await fetch('https://functions.poehali.dev/3a07f334-23a1-47ed-931c-c00deaa3ff1f', {
