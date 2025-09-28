@@ -89,7 +89,7 @@ const ParticipantPopup: React.FC<ParticipantPopupProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="w-full mt-3 uppercase border border-primary/20 hover:bg-primary/10"
+          className="w-full mt-3 uppercase border border-primary/40 hover:bg-primary/20 text-primary"
           onClick={() => window.open(participant.postUrl, '_blank')}
         >
           ПОЗНАКОМИТЬСЯ В UNICORN LAB
