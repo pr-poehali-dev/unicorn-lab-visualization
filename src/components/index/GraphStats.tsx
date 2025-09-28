@@ -2,6 +2,7 @@ import React from 'react';
 import Icon from '@/components/ui/icon';
 import { Entrepreneur } from '@/types/entrepreneur';
 import { TagsConfig } from '@/services/tagsService';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface GraphStatsProps {
   tagsConfig: TagsConfig | null;
@@ -16,6 +17,7 @@ const GraphStats: React.FC<GraphStatsProps> = ({
   totalEntrepreneurs,
   loading
 }) => {
+  const isMobile = useIsMobile();
   return (
     <>
       {/* Легенда кластеров - компактная версия */}
@@ -35,19 +37,19 @@ const GraphStats: React.FC<GraphStatsProps> = ({
         const remainingCount = sortedClusters.length - 3;
         
         return (
-          <div className="absolute bottom-8 left-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
-            <div className="flex items-center gap-3">
+          <div className={`absolute ${isMobile ? 'bottom-16 left-4' : 'bottom-8 left-8'} bg-background/90 backdrop-blur-sm px-2 py-1.5 rounded-md border ${isMobile ? 'max-w-[calc(100vw-2rem)]' : ''}`}>
+            <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
               {topClusters.map((cluster) => (
-                <div key={cluster} className="flex items-center gap-1.5">
+                <div key={cluster} className="flex items-center gap-1">
                   <div 
-                    className="w-2 h-2 rounded-full" 
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0" 
                     style={{ backgroundColor: tagsConfig.clusterColors[cluster] }}
                   />
-                  <span className="text-xs text-muted-foreground">{cluster}</span>
+                  <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground whitespace-nowrap`}>{cluster}</span>
                 </div>
               ))}
               {remainingCount > 0 && (
-                <span className="text-xs text-muted-foreground">+ {remainingCount} больше</span>
+                <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground whitespace-nowrap`}>+ {remainingCount} больше</span>
               )}
             </div>
           </div>
@@ -55,16 +57,16 @@ const GraphStats: React.FC<GraphStatsProps> = ({
       })()}
 
       {/* Статистика - компактная версия */}
-      <div className="absolute bottom-8 right-8 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md border">
-        <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5">
-            <Icon name="Users" size={14} className="text-muted-foreground" />
+      <div className={`absolute ${isMobile ? 'top-16 right-4' : 'bottom-8 right-8'} bg-background/90 backdrop-blur-sm px-2 py-1.5 rounded-md border`}>
+        <div className={`flex ${isMobile ? 'flex-col gap-1' : 'items-center gap-3'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+          <div className="flex items-center gap-1">
+            <Icon name="Users" size={isMobile ? 12 : 14} className="text-muted-foreground" />
             <span className="text-muted-foreground">Всего:</span>
             <span className="font-medium">{loading ? '...' : totalEntrepreneurs}</span>
           </div>
-          <div className="h-3 w-px bg-border" />
-          <div className="flex items-center gap-1.5">
-            <Icon name="Eye" size={14} className="text-muted-foreground" />
+          {!isMobile && <div className="h-3 w-px bg-border" />}
+          <div className="flex items-center gap-1">
+            <Icon name="Eye" size={isMobile ? 12 : 14} className="text-muted-foreground" />
             <span className="text-muted-foreground">Показано:</span>
             <span className="font-medium">{loading ? '...' : filteredEntrepreneurs.length}</span>
           </div>

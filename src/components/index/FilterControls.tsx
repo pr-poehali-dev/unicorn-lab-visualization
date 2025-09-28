@@ -2,6 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { TagsConfig } from '@/services/tagsService';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FilterControlsProps {
   clusters: string[];
@@ -42,8 +43,10 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   onSetTagFilterMode,
   onClearAIFilter
 }) => {
+  const isMobile = useIsMobile();
+  
   return (
-    <div className="absolute top-8 left-8 flex items-center gap-2">
+    <div className={`absolute ${isMobile ? 'top-4 left-4' : 'top-8 left-8'} flex items-center gap-1.5 ${isMobile ? 'scale-90 origin-top-left' : ''}`}>
       {/* Кластер */}
       <div className="relative">
         <button
@@ -51,9 +54,9 @@ const FilterControls: React.FC<FilterControlsProps> = ({
           onClick={onToggleClusterDropdown}
           className="bg-background/90 backdrop-blur-sm px-3 h-8 rounded-md border flex items-center gap-2 hover:bg-background/95 transition-colors"
         >
-          <Icon name="Layers" size={16} className="text-muted-foreground" />
-          <span className="text-sm">Кластер</span>
-          <Icon name="ChevronDown" size={14} className="text-muted-foreground" />
+          <Icon name="Layers" size={isMobile ? 14 : 16} className="text-muted-foreground" />
+          <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Кластер</span>
+          <Icon name="ChevronDown" size={isMobile ? 12 : 14} className="text-muted-foreground" />
         </button>
         
         {showClusterDropdown && (
@@ -78,16 +81,16 @@ const FilterControls: React.FC<FilterControlsProps> = ({
         <button
           data-dropdown-trigger="tags"
           onClick={onToggleTagsDropdown}
-          className="bg-background/90 backdrop-blur-sm px-3 h-8 rounded-md border flex items-center gap-2 hover:bg-background/95 transition-colors"
+          className={`bg-background/90 backdrop-blur-sm ${isMobile ? 'px-2 h-7' : 'px-3 h-8'} rounded-md border flex items-center gap-1.5 hover:bg-background/95 transition-colors`}
         >
-          <Icon name="Tags" size={16} className="text-muted-foreground" />
-          <span className="text-sm">Теги</span>
+          <Icon name="Tags" size={isMobile ? 14 : 16} className="text-muted-foreground" />
+          <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Теги</span>
           {selectedTags.length > 0 && (
             <Badge variant="secondary" className="text-xs h-4 px-1">
               {selectedTags.length}
             </Badge>
           )}
-          <Icon name="ChevronDown" size={14} className="text-muted-foreground" />
+          <Icon name="ChevronDown" size={isMobile ? 12 : 14} className="text-muted-foreground" />
         </button>
         
         {showTagsDropdown && tagCategories.length > 0 && (
@@ -165,15 +168,15 @@ const FilterControls: React.FC<FilterControlsProps> = ({
 
       {/* GPT фильтр */}
       {aiSelectedUserIds.length > 0 && (
-        <div className="bg-primary/10 backdrop-blur-sm px-3 h-8 rounded-md border border-primary/20 flex items-center gap-2">
-          <Icon name="Filter" size={16} className="text-primary" />
-          <span className="text-sm text-primary">GPT: {aiSelectedUserIds.length} участников</span>
+        <div className={`bg-primary/10 backdrop-blur-sm ${isMobile ? 'px-2 h-7' : 'px-3 h-8'} rounded-md border border-primary/20 flex items-center gap-1.5`}>
+          <Icon name="Filter" size={isMobile ? 14 : 16} className="text-primary" />
+          <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-primary`}>GPT: {aiSelectedUserIds.length} участников</span>
           {onClearAIFilter && (
             <button
               onClick={onClearAIFilter}
               className="ml-1 hover:text-primary/70 transition-colors"
             >
-              <Icon name="X" size={14} />
+              <Icon name="X" size={isMobile ? 12 : 14} />
             </button>
           )}
         </div>

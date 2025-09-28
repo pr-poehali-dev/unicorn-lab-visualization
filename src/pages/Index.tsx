@@ -17,6 +17,7 @@ const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'map' | 'chat'>('map');
 
   const [selectedCluster, setSelectedCluster] = useState('Все');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -314,17 +315,31 @@ const Index: React.FC = () => {
               />
             </div>
             
-            {/* Кнопка AI ассистента для мобильных */}
+            {/* Переключатель табов для мобильных */}
             {isMobile && (
-              <div className="absolute bottom-20 right-4 z-20">
-                <Button
-                  onClick={() => setShowAIAssistant(!showAIAssistant)}
-                  variant={showAIAssistant ? "default" : "secondary"}
-                  size="lg"
-                  className="rounded-full w-14 h-14 p-0 shadow-lg"
-                >
-                  <Icon name="Bot" size={24} />
-                </Button>
+              <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30">
+                <div className="bg-background/90 backdrop-blur border rounded-full p-1 flex gap-1">
+                  <button
+                    onClick={() => setMobileView('map')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      mobileView === 'map'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    КАРТА
+                  </button>
+                  <button
+                    onClick={() => setMobileView('chat')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      mobileView === 'chat'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    ЧАТ
+                  </button>
+                </div>
               </div>
             )}
 
@@ -393,31 +408,38 @@ const Index: React.FC = () => {
               </div>
             )}
 
-            {/* Мобильный AI ассистент в модальном окне */}
-            {isMobile && showAIAssistant && (
-              <div className="fixed inset-0 z-50 bg-background">
-                <div className="h-full relative">
-                  {/* Кнопка закрытия */}
-                  <Button
-                    onClick={() => setShowAIAssistant(false)}
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 z-10"
-                  >
-                    <Icon name="X" size={20} />
-                  </Button>
-                  
-                  {/* AI Ассистент */}
+            {/* Мобильные вьюшки */}
+            {isMobile && (
+              <>
+                {/* Карта */}
+                <div className={`absolute inset-0 transition-opacity duration-300 ${
+                  mobileView === 'map' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                }`}>
+                  <ForceGraph
+                    key={`mobile-${selectedCluster}-${selectedTags.join(',')}`}
+                    ref={forceGraphRef}
+                    nodes={filteredEntrepreneurs}
+                    edges={filteredEdges}
+                    onNodeClick={handleNodeClick}
+                    selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
+                    clusterColors={tagsConfig?.clusterColors || {}}
+                  />
+                </div>
+
+                {/* Чат */}
+                <div className={`fixed inset-0 bg-background transition-transform duration-300 z-40 ${
+                  mobileView === 'chat' ? 'translate-x-0' : 'translate-x-full'
+                }`}>
                   <AIAssistant
                     entrepreneurs={filteredEntrepreneurs}
                     onSelectUsers={(userIds) => {
                       handleAISelectUsers(userIds);
-                      setShowAIAssistant(false); // Закрываем после выбора
+                      setMobileView('map'); // Переключаемся на карту после выбора
                     }}
-                    isVisible={true}
+                    isVisible={mobileView === 'chat'}
                   />
                 </div>
-              </div>
+              </>
             )}
           </div>
         </>
