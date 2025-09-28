@@ -198,7 +198,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
             onChange={(e) => setInput(e.target.value)}
             placeholder="Задайте вопрос..."
             disabled={isLoading}
-            className="flex-1 focus:ring-0 focus:border-border caret-primary"
+            className="flex-1 focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:ring-offset-0 caret-primary"
             autoFocus
           />
           <Button type="submit" disabled={isLoading || !input.trim()}>
