@@ -144,7 +144,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
           <div className="text-center text-muted-foreground py-16">
             <Icon name="MessageCircle" size={48} className="mx-auto mb-4 opacity-20" />
             <p className="text-sm">Задайте вопрос об участниках сообщества</p>
-            <p className="text-xs mt-2">Например: "Найди разработчиков для AI проекта"</p>
+            <p className="text-xs mt-2">Например: «Найди разработчиков для ИИ проекта»</p>
           </div>
         )}
         
