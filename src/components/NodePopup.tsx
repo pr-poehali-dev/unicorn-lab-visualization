@@ -15,16 +15,30 @@ const NodePopup: React.FC<NodePopupProps> = ({ participant, position, onClose })
   const popupHeight = 400;
   const padding = 20;
   
-  let left = position.x;
+  // По умолчанию центрируем попап относительно позиции клика
+  let left = position.x - popupWidth / 2;
   let top = position.y - popupHeight - 20;
   
-  // Проверка границ экрана
+  // Определяем положение стрелки
+  let arrowPosition = '50%'; // по умолчанию по центру
+  
+  // Проверка правой границы экрана
   if (left + popupWidth > window.innerWidth - padding) {
+    const overflow = (left + popupWidth) - (window.innerWidth - padding);
     left = window.innerWidth - popupWidth - padding;
+    // Вычисляем новую позицию стрелки
+    arrowPosition = `${popupWidth / 2 + overflow}px`;
   }
+  
+  // Проверка левой границы экрана
   if (left < padding) {
+    const overflow = padding - left;
     left = padding;
+    // Вычисляем новую позицию стрелки
+    arrowPosition = `${popupWidth / 2 - overflow}px`;
   }
+  
+  // Проверка верхней границы
   if (top < padding) {
     top = position.y + 60;
   }
@@ -106,8 +120,8 @@ const NodePopup: React.FC<NodePopupProps> = ({ participant, position, onClose })
           className="absolute w-3 h-3 bg-card border-l border-b rotate-45"
           style={{
             bottom: '-7px',
-            left: '50%',
-            transform: 'translateX(-50%) rotate(45deg)'
+            left: arrowPosition,
+            transform: `translateX(-50%) rotate(45deg)`
           }}
         />
       </div>
