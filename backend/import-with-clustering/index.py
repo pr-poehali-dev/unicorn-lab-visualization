@@ -5,7 +5,7 @@ import httpx
 from openai import OpenAI
 from typing import Dict, List, Any, Optional, Literal, Tuple
 from datetime import datetime
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, validator
 
 def filter_new_participants(participants: List[Dict]) -> List[Dict]:
     """Filter out participants that already exist in database by post_url"""
@@ -68,7 +68,7 @@ def get_tags_and_clusters_from_db() -> Tuple[List[str], List[str]]:
             SELECT t.name 
             FROM t_p95295728_unicorn_lab_visualiz.tags t
             JOIN t_p95295728_unicorn_lab_visualiz.tag_categories tc ON t.category_id = tc.id
-            WHERE tc.name = 'cluster'
+            WHERE tc.key = 'cluster'
             ORDER BY t.name
         """)
         clusters = [row[0] for row in cur.fetchall()]
@@ -208,15 +208,26 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
     if not api_key:
         raise Exception("OPENAI_API_KEY not configured")
     
-    # Define Pydantic models
+    # Define Pydantic models with enum for clusters
+    from enum import Enum
+    
+    # Create Enum dynamically from cluster list
+    ClusterEnum = Enum('ClusterEnum', {cluster: cluster for cluster in clusters})
+    
     class Participant(BaseModel):
         name: str
         telegram_id: str
-        cluster: str
+        cluster: str = Field(..., description=f"Must be one of: {', '.join(clusters)}")
         summary: str
         goal: str
         emoji: str = Field(min_length=1, max_length=2)
         tags: List[str] = Field(min_items=3, max_items=10)
+        
+        @validator('cluster')
+        def validate_cluster(cls, v):
+            if v not in clusters:
+                raise ValueError(f'cluster must be one of: {", ".join(clusters)}')
+            return v
     
     class ParticipantBatch(BaseModel):
         participants: List[Participant]
@@ -259,7 +270,7 @@ TASK:
    - NEVER include: @username, emojis, titles (CEO, директор), company names
    - If no name found in text, use metadata name as last resort
    - Clean format: "Иван Петров" NOT "Иван Петров 🚀 CEO"
-2. Assign ONE cluster from this list: {', '.join(clusters)}
+2. Assign ONE cluster - MUST BE EXACTLY one from this list (no other values allowed): {', '.join(clusters)}
 3. Create a 1-2 sentence summary in Russian highlighting their expertise and achievements
 4. Extract their main GOAL - what they want to achieve or find (1 sentence in Russian)
 5. Select ONE emoji that best represents this person's profession, industry or personality
