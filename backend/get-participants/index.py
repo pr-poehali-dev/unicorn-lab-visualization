@@ -78,10 +78,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Build query with full schema names
         query = """
-            SELECT e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, e.cluster_id,
+            SELECT e.id, e.telegram_id, e.username, e.name, e.role, c.name as cluster_name, e.cluster_id,
                    e.description, e.post_url, e.goal, e.emoji, e.created_at, e.updated_at,
                    COALESCE(array_agg(t.name) FILTER (WHERE t.name IS NOT NULL), '{}') as tags
             FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs e
+            LEFT JOIN t_p95295728_unicorn_lab_visualiz.clusters c ON e.cluster_id = c.id
             LEFT JOIN t_p95295728_unicorn_lab_visualiz.entrepreneur_tags et ON e.id = et.entrepreneur_id
             LEFT JOIN t_p95295728_unicorn_lab_visualiz.tags t ON et.tag_id = t.id
             WHERE 1=1
@@ -97,10 +98,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             query_params.extend([f'%{search_query}%', search_query])
         
         if cluster_filter and cluster_filter != 'Все':
-            query += " AND e.cluster = %s"
+            query += " AND c.name = %s"
             query_params.append(cluster_filter)
         
-        query += " GROUP BY e.id, e.telegram_id, e.username, e.name, e.role, e.cluster, e.cluster_id, e.description, e.post_url, e.goal, e.emoji, e.created_at, e.updated_at"
+        query += " GROUP BY e.id, e.telegram_id, e.username, e.name, e.role, c.name, e.cluster_id, e.description, e.post_url, e.goal, e.emoji, e.created_at, e.updated_at"
         query += " ORDER BY e.name"
         
         # Execute query
