@@ -197,7 +197,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
             <button
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
-              className={`absolute right-2 bottom-3 w-8 h-8 rounded-full transition-all flex items-center justify-center ${
+              className={`absolute right-2 bottom-2.5 w-8 h-8 rounded-full transition-all flex items-center justify-center ${
                 input.trim() && !isLoading 
                   ? 'bg-white text-black hover:bg-gray-200' 
                   : 'bg-[#424242] text-gray-500 cursor-not-allowed'
