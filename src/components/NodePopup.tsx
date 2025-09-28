@@ -13,34 +13,60 @@ const NodePopup: React.FC<NodePopupProps> = ({ participant, position, onClose })
   // Определяем позицию попапа чтобы не выходил за границы экрана
   const popupWidth = 320;
   const popupHeight = 400;
-  const padding = 20;
+  const padding = 40; // Увеличиваем отступ от краев
+  const nodeOffset = 20; // Отступ от ноды
   
   // По умолчанию центрируем попап относительно позиции клика
   let left = position.x - popupWidth / 2;
-  let top = position.y - popupHeight - 20;
+  let top = position.y - popupHeight - nodeOffset;
+  
+  // Проверяем, где находится нода относительно центра экрана
+  const screenCenterX = window.innerWidth / 2;
+  const isNodeNearLeftEdge = position.x < popupWidth / 2 + padding;
+  const isNodeNearRightEdge = position.x > window.innerWidth - popupWidth / 2 - padding;
   
   // Определяем положение стрелки
   let arrowPosition = '50%'; // по умолчанию по центру
   
-  // Проверка правой границы экрана
-  if (left + popupWidth > window.innerWidth - padding) {
-    const overflow = (left + popupWidth) - (window.innerWidth - padding);
-    left = window.innerWidth - popupWidth - padding;
-    // Вычисляем новую позицию стрелки
-    arrowPosition = `${popupWidth / 2 + overflow}px`;
+  // Если нода слишком близко к левому краю
+  if (isNodeNearLeftEdge) {
+    // Показываем попап справа от ноды
+    left = position.x + nodeOffset;
+    // Ограничиваем минимальным отступом от края
+    if (left < padding) {
+      left = padding;
+    }
+    // Вычисляем позицию стрелки относительно попапа
+    arrowPosition = `${Math.max(12, position.x - left)}px`;
   }
-  
-  // Проверка левой границы экрана
-  if (left < padding) {
-    const overflow = padding - left;
-    left = padding;
-    // Вычисляем новую позицию стрелки
-    arrowPosition = `${popupWidth / 2 - overflow}px`;
+  // Если нода слишком близко к правому краю
+  else if (isNodeNearRightEdge) {
+    // Показываем попап слева от ноды
+    left = position.x - popupWidth - nodeOffset;
+    // Ограничиваем максимальным отступом от края
+    if (left + popupWidth > window.innerWidth - padding) {
+      left = window.innerWidth - popupWidth - padding;
+    }
+    // Вычисляем позицию стрелки относительно попапа
+    arrowPosition = `${Math.min(popupWidth - 12, position.x - left)}px`;
+  }
+  // Если нода в центре, но попап выходит за края
+  else {
+    // Проверка правой границы экрана
+    if (left + popupWidth > window.innerWidth - padding) {
+      left = window.innerWidth - popupWidth - padding;
+      arrowPosition = `${position.x - left}px`;
+    }
+    // Проверка левой границы экрана
+    else if (left < padding) {
+      left = padding;
+      arrowPosition = `${position.x - left}px`;
+    }
   }
   
   // Проверка верхней границы
   if (top < padding) {
-    top = position.y + 60;
+    top = position.y + nodeOffset + 40; // Показываем снизу от ноды
   }
 
   return (
