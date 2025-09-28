@@ -4,12 +4,6 @@ import psycopg2
 from openai import OpenAI
 from typing import Dict, List, Any, Optional
 from pydantic import BaseModel, Field
-from datetime import datetime, timedelta
-
-# Cache for entrepreneurs data
-_entrepreneurs_cache = None
-_cache_time = None
-CACHE_DURATION = timedelta(minutes=5)
 
 class AssistantResponse(BaseModel):
     """Structured response from AI assistant"""
@@ -59,13 +53,9 @@ def create_system_prompt(entrepreneurs: List[Dict[str, Any]]) -> str:
 БАЗА ДАННЫХ УЧАСТНИКОВ:
 """
     
-    # Add each entrepreneur (compact format to reduce token usage)
+    # Add each entrepreneur
     for e in entrepreneurs:
-        # Skip entrepreneurs without description
-        if not e['description'] and not e['goal']:
-            base_prompt += f"\n{str(e['id'])}. {e['name']}"
-        else:
-            base_prompt += f"\n{str(e['id'])}. {e['name']} - {e['description'][:100] if e['description'] else 'Нет описания'}"
+        base_prompt += f"\nID: {str(e['id'])}\nИмя: {e['name']}\nОписание: {e['description']}\nЦель: {e['goal']}\n---"
     
     base_prompt += """
 
@@ -145,11 +135,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         else:
             print("WARNING: No proxy configured, OpenAI might be blocked")
         
-        client = OpenAI(
-            api_key=api_key, 
-            http_client=http_client,
-            timeout=20.0  # 20 second timeout to leave room for processing
-        )
+        client = OpenAI(api_key=api_key, http_client=http_client)
         
         # Prepare messages for OpenAI
         openai_messages = [{"role": "system", "content": system_prompt}]
@@ -163,10 +149,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Get completion with structured output
         completion = client.beta.chat.completions.parse(
-            model="gpt-4o-mini",  # Using faster model to avoid timeouts
+            model="gpt-5",  # Using full GPT-5 model for better analysis
             messages=openai_messages,
-            response_format=AssistantResponse,
-            temperature=0.7
+            response_format=AssistantResponse
+            # temperature not supported for gpt-5
         )
         
         # Parse response
