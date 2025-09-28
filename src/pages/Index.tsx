@@ -437,6 +437,7 @@ const Index: React.FC = () => {
                       setMobileView('map'); // Переключаемся на карту после выбора
                     }}
                     isVisible={mobileView === 'chat'}
+                    onClose={() => setMobileView('map')}
                   />
                 </div>
               </>

@@ -12,6 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -23,9 +25,11 @@ interface AIAssistantProps {
   entrepreneurs?: any[];
   onSelectUsers: (userIds: string[]) => void;
   isVisible?: boolean;
+  onClose?: () => void;
 }
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers, isVisible }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers, isVisible, onClose }) => {
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -166,6 +170,21 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
 
   return (
     <div className="h-full flex flex-col bg-background">
+      {/* Mobile header with close button */}
+      {isMobile && onClose && (
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="font-semibold text-lg">ИИ Ассистент</h3>
+          <Button
+            onClick={onClose}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+          >
+            <Icon name="X" size={20} />
+          </Button>
+        </div>
+      )}
+      
       {/* Messages */}
       <ScrollArea ref={scrollRef} className="flex-1 p-6">
         {messages.length === 0 && (
