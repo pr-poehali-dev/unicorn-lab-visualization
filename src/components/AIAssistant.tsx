@@ -52,6 +52,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
     }
   }, [messages]);
 
+  // Auto-focus on input when component mounts
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -191,7 +198,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
             onChange={(e) => setInput(e.target.value)}
             placeholder="Задайте вопрос..."
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 focus:ring-0 focus:border-border caret-primary"
+            autoFocus
           />
           <Button type="submit" disabled={isLoading || !input.trim()}>
             <Icon name="Send" size={16} />
