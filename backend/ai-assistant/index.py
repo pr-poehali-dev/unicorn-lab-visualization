@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 class AssistantResponse(BaseModel):
     """Structured response from AI assistant"""
     completion_text: str = Field(description="Assistant's response text")
-    related_users_ids: List[int] = Field(description="IDs of entrepreneurs related to the response", default=[])
+    related_users_ids: List[str] = Field(description="IDs of entrepreneurs related to the response", default=[])
 
 class ChatMessage(BaseModel):
     """Chat message structure"""
