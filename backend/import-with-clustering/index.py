@@ -2,6 +2,7 @@ import json
 import os
 import psycopg2
 import httpx
+from openai import OpenAI
 from typing import Dict, List, Any, Optional, Literal, Tuple
 from datetime import datetime
 from pydantic import BaseModel, Field, ValidationError
@@ -147,6 +148,19 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
     if not api_key:
         raise Exception("OPENAI_API_KEY not configured")
     
+    # Define Pydantic models
+    class Participant(BaseModel):
+        name: str
+        telegram_id: str
+        cluster: str
+        summary: str
+        goal: str
+        emoji: str = Field(min_length=1, max_length=2)
+        tags: List[str] = Field(min_items=3, max_items=10)
+    
+    class ParticipantBatch(BaseModel):
+        participants: List[Participant]
+    
     # Prepare batch text
     batch_text = ""
     for i, p in enumerate(participants):
@@ -157,58 +171,22 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
     
     # Setup proxy if needed
     proxy_url = os.environ.get('OPENAI_HTTP_PROXY', '')
-    client_kwargs = {}
+    http_client = None
     if proxy_url:
-        client_kwargs['proxies'] = {'http://': proxy_url, 'https://': proxy_url}
+        http_client = httpx.Client(proxies=proxy_url)
         print(f"Using proxy: {proxy_url}")
     else:
         print("WARNING: No proxy configured, OpenAI might be blocked")
     
-    # Create JSON schema for structured output
-    json_schema = {
-        "type": "object",
-        "properties": {
-            "participants": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string"},
-                        "telegram_id": {"type": "string"},
-                        "cluster": {"type": "string", "enum": clusters},
-                        "summary": {"type": "string"},
-                        "goal": {"type": "string"},
-                        "emoji": {"type": "string", "minLength": 1, "maxLength": 2},
-                        "tags": {
-                            "type": "array",
-                            "items": {"type": "string", "enum": allowed_tags},
-                            "minItems": 3,
-                            "maxItems": 10
-                        }
-                    },
-                    "required": ["name", "telegram_id", "cluster", "summary", "goal", "emoji", "tags"],
-                    "additionalProperties": False
-                }
-            }
-        },
-        "required": ["participants"],
-        "additionalProperties": False
-    }
-    
     try:
-        with httpx.Client(**client_kwargs) as client:
-            response = client.post(
-                'https://api.openai.com/v1/chat/completions',
-                headers={
-                    'Authorization': f'Bearer {api_key}',
-                    'Content-Type': 'application/json'
-                },
-                json={
-                    'model': 'gpt-4o-mini',
-                    'messages': [
-                        {
-                            'role': 'system',
-                            'content': f'''You are analyzing Russian text about entrepreneurs and business professionals.
+        client = OpenAI(api_key=api_key, http_client=http_client)
+        
+        completion = client.beta.chat.completions.parse(
+            model="gpt-4o-2024-08-06",
+            messages=[
+                {
+                    'role': 'system',
+                    'content': f'''You are analyzing Russian text about entrepreneurs and business professionals.
 
 TASK:
 1. Extract participant information in Russian
@@ -249,35 +227,22 @@ IMPORTANT:
 - Select 3-10 most relevant tags per person
 - If no perfect match, choose the closest relevant tags
 - Focus on their skills, industry, business stage, needs'''
-                        },
-                        {
-                            'role': 'user',
-                            'content': batch_text
-                        }
-                    ],
-                    'response_format': {
-                        'type': 'json_schema',
-                        'json_schema': {
-                            'name': 'batch_response',
-                            'schema': json_schema,
-                            'strict': True
-                        }
-                    },
-                    'max_tokens': 800,
-                    'temperature': 0
                 },
-                timeout=15.0
-            )
-            
-            if response.status_code != 200:
-                raise Exception(f"OpenAI error: {response.status_code} - {response.text}")
-            
-            # Parse structured response
-            result = response.json()
-            content = result['choices'][0]['message']['content']
-            parsed = json.loads(content)
-            
-            return parsed['participants']
+                {
+                    'role': 'user',
+                    'content': batch_text
+                }
+            ],
+            response_format=ParticipantBatch,
+            max_tokens=800,
+            temperature=0
+        )
+        
+        # Get parsed result
+        batch = completion.choices[0].message.parsed
+        
+        # Convert to dict list
+        return [p.model_dump() for p in batch.participants]
             
     except Exception as e:
         print(f"Error in AI processing: {str(e)}")

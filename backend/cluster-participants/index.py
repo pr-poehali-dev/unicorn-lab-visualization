@@ -1,9 +1,9 @@
 import json
 import os
 import httpx
+from openai import OpenAI
 from typing import Dict, Any, List, Optional
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from pydantic import BaseModel, Field
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -93,6 +93,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[str]) -> List[Dict]:
     """Process a batch of participants through OpenAI API"""
     
+    # Define Pydantic models
+    class Participant(BaseModel):
+        id: str
+        post_url: str
+        name: str
+        role: str = Field(max_length=50)
+        description: str = Field(max_length=200)
+        cluster: str
+        tags: List[str] = Field(min_items=3, max_items=7)
+    
+    class ParticipantBatch(BaseModel):
+        participants: List[Participant]
+    
     # Prepare system prompt
     system_prompt = """Ты эксперт по анализу и кластеризации участников предпринимательского сообщества.
     Твоя задача - извлечь структурированную информацию из текста знакомства и определить кластер.
@@ -117,72 +130,44 @@ def process_batch(participants: List[Dict], api_key: str, proxy_url: Optional[st
     """
     
     # Prepare user prompt with batch
-    user_prompt = "Проанализируй следующих участников и верни JSON массив:\n\n"
+    user_prompt = "Проанализируй следующих участников:\n\n"
     for i, p in enumerate(participants):
         user_prompt += f"Участник {i+1}:\n"
         user_prompt += f"ID: {p.get('authorId', 'unknown')}\n"
         user_prompt += f"Ссылка: {p.get('messageLink', '')}\n"
         user_prompt += f"Текст: {p.get('text', '')}\n\n"
     
-    user_prompt += """
-    Верни JSON массив в формате:
-    [
-        {
-            "id": "ID участника",
-            "post_url": "ссылка на сообщение",
-            "name": "Полное имя",
-            "role": "Краткая роль",
-            "description": "Описание деятельности",
-            "cluster": "Название кластера",
-            "tags": ["тег1", "тег2", "тег3"]
-        }
-    ]
-    """
-    
-    # Setup HTTP client with proxy if provided
-    client_kwargs = {}
+    # Setup proxy if needed
+    http_client = None
     if proxy_url:
-        client_kwargs['proxies'] = proxy_url
+        http_client = httpx.Client(proxies=proxy_url)
     
-    # Make API request
-    with httpx.Client(**client_kwargs) as client:
-        response = client.post(
-            'https://api.openai.com/v1/chat/completions',
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json'
-            },
-            json={
-                'model': 'gpt-4o-mini',  # Using faster model to avoid timeouts
-                'messages': [
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt}
-                ],
-                'response_format': {'type': 'json_object'}
-            },
-            timeout=25.0  # Keep under function timeout
+    try:
+        # Create OpenAI client
+        client = OpenAI(api_key=api_key, http_client=http_client)
+        
+        # Make structured output request
+        completion = client.beta.chat.completions.parse(
+            model="gpt-4o-2024-08-06",
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            response_format=ParticipantBatch,
+            max_tokens=2000,
+            temperature=0
         )
         
-        if response.status_code != 200:
-            raise Exception(f"OpenAI API error: {response.status_code} - {response.text}")
+        # Get parsed result
+        batch = completion.choices[0].message.parsed
         
-        result = response.json()
-        content = result['choices'][0]['message']['content']
+        # Convert to dict list
+        return [p.model_dump() for p in batch.participants]
         
-        # Parse JSON response
-        try:
-            parsed_data = json.loads(content)
-            # Handle both array and object with array
-            if isinstance(parsed_data, dict) and 'participants' in parsed_data:
-                return parsed_data['participants']
-            elif isinstance(parsed_data, list):
-                return parsed_data
-            else:
-                # Wrap single object in array
-                return [parsed_data]
-        except json.JSONDecodeError:
-            # If JSON parsing fails, return empty result
-            return []
+    except Exception as e:
+        print(f"OpenAI API error: {str(e)}")
+        # Return empty result on error
+        return []
 
 
 def analyze_clusters(participants: List[Dict]) -> Dict[str, int]:
