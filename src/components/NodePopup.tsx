@@ -14,53 +14,58 @@ const NodePopup: React.FC<NodePopupProps> = ({ participant, position, onClose })
   const popupWidth = 320;
   const popupHeight = 400;
   const padding = 10; // Минимальный отступ от края экрана
-  const nodeOffset = 20; // Отступ от ноды
+  const nodeOffset = 60; // Отступ от ноды (увеличен для размера ноды)
   
-  // По умолчанию центрируем попап относительно позиции клика
+  // Флаги для определения позиции
+  let showOnRight = false;
+  let showOnBottom = false;
+  
+  // По умолчанию показываем сверху и центрируем по горизонтали
   let left = position.x - popupWidth / 2;
-  let top = position.y - popupHeight - nodeOffset;
+  let top = position.y - popupHeight - 20;
   
-  // Определяем положение стрелки (по умолчанию по центру)
-  let arrowPosition = position.x;
+  // Проверяем, помещается ли попап при центрировании
+  const centerLeft = position.x - popupWidth / 2;
+  const wouldOverflowLeft = centerLeft < padding;
+  const wouldOverflowRight = centerLeft + popupWidth > window.innerWidth - padding;
   
-  // ЖЁСТКАЯ проверка границ - попап ВСЕГДА должен быть полностью видим
-  
-  // Проверка правой границы
-  if (left + popupWidth > window.innerWidth - padding) {
-    left = window.innerWidth - popupWidth - padding;
+  // Если не помещается по центру, определяем с какой стороны показывать
+  if (wouldOverflowLeft) {
+    // Нода слева - показываем попап справа от неё
+    showOnRight = true;
+    left = position.x + nodeOffset;
+    // Если и справа не помещается, прижимаем к правому краю
+    if (left + popupWidth > window.innerWidth - padding) {
+      left = window.innerWidth - popupWidth - padding;
+    }
+  } else if (wouldOverflowRight) {
+    // Нода справа - показываем попап слева от неё
+    left = position.x - popupWidth - nodeOffset;
+    // Если и слева не помещается, прижимаем к левому краю
+    if (left < padding) {
+      left = padding;
+    }
+  } else {
+    // Нода в центре - центрируем попап
+    left = centerLeft;
   }
   
-  // Проверка левой границы
-  if (left < padding) {
-    left = padding;
-  }
-  
-  // Пересчитываем позицию стрелки после корректировки left
-  arrowPosition = position.x - left;
-  
-  // Ограничиваем стрелку в пределах попапа
+  // Вычисляем позицию стрелки
+  let arrowPosition = position.x - left;
   arrowPosition = Math.max(12, Math.min(popupWidth - 12, arrowPosition));
   
-  // Проверка нижней границы (если попап внизу выходит за экран)
-  if (top + popupHeight > window.innerHeight - padding) {
-    // Если не помещается снизу, пробуем показать сверху от ноды
-    top = position.y - popupHeight - nodeOffset;
-    
-    // Если и сверху не помещается, показываем максимально низко
-    if (top < padding) {
-      top = window.innerHeight - popupHeight - padding;
-    }
-  }
-  
-  // Проверка верхней границы
+  // Проверка вертикального положения
   if (top < padding) {
-    // Показываем снизу от ноды
-    top = position.y + nodeOffset + 40;
-    
-    // Если и снизу не помещается, прижимаем к верху
+    // Не помещается сверху - показываем снизу
+    showOnBottom = true;
+    top = position.y + nodeOffset;
+    // Если и снизу не помещается, центрируем вертикально
     if (top + popupHeight > window.innerHeight - padding) {
-      top = padding;
+      top = Math.max(padding, Math.min(window.innerHeight - popupHeight - padding, position.y - popupHeight / 2));
     }
+  } else if (top + popupHeight > window.innerHeight - padding) {
+    // Не помещается снизу при показе сверху
+    top = window.innerHeight - popupHeight - padding;
   }
 
   return (
