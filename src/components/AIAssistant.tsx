@@ -172,7 +172,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
     <div className="h-full flex flex-col bg-background">
       {/* Mobile header with close button */}
       {isMobile && onClose && (
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b relative z-50">
           <h3 className="font-semibold text-lg">ИИ Ассистент</h3>
           <Button
             onClick={onClose}
@@ -188,10 +188,12 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
       {/* Messages */}
       <ScrollArea ref={scrollRef} className="flex-1 p-6">
         {messages.length === 0 && (
-          <div className="text-center text-muted-foreground py-16">
-            <Icon name="MessageCircle" size={48} className="mx-auto mb-4 opacity-20" />
-            <p className="text-sm">Задайте вопрос об участниках сообщества</p>
-            <p className="text-xs mt-2">Например: «Найди разработчиков для ИИ проекта»</p>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-muted-foreground">
+              <Icon name="MessageCircleHeart" size={48} className="mx-auto mb-4 opacity-20" />
+              <p className="text-sm">Задайте вопрос об участниках сообщества</p>
+              <p className="text-xs mt-2">Например: «Найди разработчиков для ИИ проекта»</p>
+            </div>
           </div>
         )}
         

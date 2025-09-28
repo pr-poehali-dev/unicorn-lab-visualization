@@ -427,7 +427,7 @@ const Index: React.FC = () => {
                 </div>
 
                 {/* Чат */}
-                <div className={`fixed inset-0 bg-background transition-transform duration-300 z-40 ${
+                <div className={`fixed inset-0 bg-background transition-transform duration-300 z-40 pt-16 ${
                   mobileView === 'chat' ? 'translate-x-0' : 'translate-x-full'
                 }`}>
                   <AIAssistant
