@@ -347,10 +347,10 @@ const Index: React.FC = () => {
 
             {/* Индикатор AI фильтра */}
             {aiSelectedUserIds.length > 0 && (
-              <div className="absolute top-8 left-8" style={{ marginLeft: '340px' }}>
+              <div className="absolute top-8 left-8" style={{ marginLeft: '260px' }}>
                 <div className="bg-primary/10 border border-primary/20 rounded-md px-3 h-8 flex items-center gap-2">
                   <Icon name="Filter" size={14} className="text-primary" />
-                  <span className="text-sm text-primary">ИИ: {aiSelectedUserIds.length} участников</span>
+                  <span className="text-sm text-primary">GPT: {aiSelectedUserIds.length} участников</span>
                   <button
                     onClick={() => {
                       setIsTransitioning(true);
