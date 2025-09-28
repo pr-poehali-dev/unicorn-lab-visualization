@@ -26,9 +26,7 @@ def get_all_entrepreneurs() -> List[Dict[str, Any]]:
                 e.id,
                 e.name,
                 e.description,
-                e.goal,
-                e.cluster,
-                e.tags
+                e.goal
             FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs e
             ORDER BY e.id
         """)
@@ -39,9 +37,7 @@ def get_all_entrepreneurs() -> List[Dict[str, Any]]:
                 "id": row[0],
                 "name": row[1],
                 "description": row[2] or "",
-                "goal": row[3] or "",
-                "cluster": row[4] or "",
-                "tags": row[5] or []
+                "goal": row[3] or ""
             })
         
         return entrepreneurs
@@ -59,8 +55,7 @@ def create_system_prompt(entrepreneurs: List[Dict[str, Any]]) -> str:
     
     # Add each entrepreneur
     for e in entrepreneurs:
-        tags_str = ", ".join(e['tags']) if e['tags'] else "не указаны"
-        base_prompt += f"\nID: {str(e['id'])}\nИмя: {e['name']}\nКластер: {e['cluster']}\nТеги: {tags_str}\nОписание: {e['description']}\nЦель: {e['goal']}\n---"
+        base_prompt += f"\nID: {str(e['id'])}\nИмя: {e['name']}\nОписание: {e['description']}\nЦель: {e['goal']}\n---"
     
     base_prompt += """
 
