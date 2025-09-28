@@ -350,7 +350,7 @@ const Index: React.FC = () => {
               <div className="absolute top-8 left-8" style={{ marginLeft: '340px' }}>
                 <div className="bg-primary/10 border border-primary/20 rounded-md px-3 h-8 flex items-center gap-2">
                   <Icon name="Filter" size={14} className="text-primary" />
-                  <span className="text-sm text-primary">AI: {aiSelectedUserIds.length} участников</span>
+                  <span className="text-sm text-primary">ИИ: {aiSelectedUserIds.length} участников</span>
                   <button
                     onClick={() => {
                       setIsTransitioning(true);
@@ -375,12 +375,7 @@ const Index: React.FC = () => {
         onToggleParser={() => setShowParser(!showParser)}
       />
 
-            <GraphStats
-              tagsConfig={tagsConfig}
-              filteredEntrepreneurs={filteredEntrepreneurs}
-              totalEntrepreneurs={entrepreneurs.length}
-              loading={loading}
-            />
+
 
             {/* Попап с информацией об участнике */}
             {selectedParticipant && popupPosition && (

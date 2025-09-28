@@ -2,6 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -19,6 +29,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -187,13 +198,22 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
               onKeyDown={handleKeyDown}
               placeholder="Отправьте сообщение..."
               disabled={isLoading}
-              className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-12 text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-20 text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               rows={1}
               style={{
                 minHeight: '52px',
                 maxHeight: '200px'
               }}
             />
+            {messages.length > 0 && (
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                className="absolute right-12 bottom-2.5 text-gray-400 hover:text-orange-500 transition-colors p-2"
+                title="Очистить историю"
+              >
+                🗑️
+              </button>
+            )}
             <button
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
@@ -212,6 +232,31 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Очистить историю чата?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Вся история переписки будет удалена.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setMessages([]);
+                localStorage.removeItem('ai-assistant-messages');
+                toast.success('История очищена');
+                setShowDeleteDialog(false);
+              }}
+            >
+              Очистить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
