@@ -15,12 +15,14 @@ interface FilterControlsProps {
     label: string;
     tags: string[];
   }>;
+  aiSelectedUserIds?: string[];
   onSetCluster: (cluster: string) => void;
   onToggleTag: (tag: string) => void;
   onToggleClusterDropdown: () => void;
   onToggleTagsDropdown: () => void;
   onClearTags: () => void;
   onSetTagFilterMode?: (mode: 'OR' | 'AND') => void;
+  onClearAIFilter?: () => void;
 }
 
 const FilterControls: React.FC<FilterControlsProps> = ({
@@ -31,12 +33,14 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   showClusterDropdown,
   showTagsDropdown,
   tagCategories,
+  aiSelectedUserIds = [],
   onSetCluster,
   onToggleTag,
   onToggleClusterDropdown,
   onToggleTagsDropdown,
   onClearTags,
-  onSetTagFilterMode
+  onSetTagFilterMode,
+  onClearAIFilter
 }) => {
   return (
     <div className="absolute top-8 left-8 flex items-center gap-2">
@@ -158,6 +162,22 @@ const FilterControls: React.FC<FilterControlsProps> = ({
           </div>
         )}
       </div>
+
+      {/* GPT фильтр */}
+      {aiSelectedUserIds.length > 0 && (
+        <div className="bg-primary/10 backdrop-blur-sm px-3 h-8 rounded-md border border-primary/20 flex items-center gap-2">
+          <Icon name="Filter" size={16} className="text-primary" />
+          <span className="text-sm text-primary">GPT: {aiSelectedUserIds.length} участников</span>
+          {onClearAIFilter && (
+            <button
+              onClick={onClearAIFilter}
+              className="ml-1 hover:text-primary/70 transition-colors"
+            >
+              <Icon name="X" size={14} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

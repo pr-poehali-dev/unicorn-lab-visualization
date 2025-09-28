@@ -337,35 +337,23 @@ const Index: React.FC = () => {
         showClusterDropdown={showClusterDropdown}
         showTagsDropdown={showTagsDropdown}
         tagCategories={tagCategories}
+        aiSelectedUserIds={aiSelectedUserIds}
         onSetCluster={handleSetCluster}
         onToggleTag={handleToggleTag}
         onToggleClusterDropdown={toggleClusterDropdown}
         onToggleTagsDropdown={toggleTagsDropdown}
         onClearTags={handleClearTags}
         onSetTagFilterMode={setTagFilterMode}
+        onClearAIFilter={() => {
+          setIsTransitioning(true);
+          setTimeout(() => {
+            setAiSelectedUserIds([]);
+            setIsTransitioning(false);
+          }, 150);
+        }}
             />
 
-            {/* Индикатор AI фильтра */}
-            {aiSelectedUserIds.length > 0 && (
-              <div className="absolute top-8 left-8" style={{ marginLeft: '260px' }}>
-                <div className="bg-primary/10 border border-primary/20 rounded-md px-3 h-8 flex items-center gap-2">
-                  <Icon name="Filter" size={14} className="text-primary" />
-                  <span className="text-sm text-primary">GPT: {aiSelectedUserIds.length} участников</span>
-                  <button
-                    onClick={() => {
-                      setIsTransitioning(true);
-                      setTimeout(() => {
-                        setAiSelectedUserIds([]);
-                        setIsTransitioning(false);
-                      }, 150);
-                    }}
-                    className="ml-2 hover:text-primary/70 transition-colors"
-                  >
-                    <Icon name="X" size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
+
 
             <GraphControls
         showParser={showParser}
