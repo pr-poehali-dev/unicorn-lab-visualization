@@ -249,11 +249,16 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
                     'content': f'''You are analyzing Russian text about entrepreneurs and business professionals.
 
 TASK:
-1. Extract participant information in Russian
-   - If name is not provided in metadata, try to extract it from the text
-   - Look for patterns like "Меня зовут...", "Я - [имя]", signatures at the end
-   - Prefer Russian names over English when both are available
-   - Keep original capitalization and format
+1. Extract participant NAME in Russian
+   - PRIORITY: Extract name from the message text itself (not metadata)
+   - Look for patterns: "Меня зовут...", "Я - [имя]", "Привет, я [имя]", signatures
+   - Extract ONLY clean name: "Имя Фамилия" format (no titles, emojis, or extra text)
+   - If English name found, translate to Russian if it has common translation
+   - Examples: John → Джон, Mary → Мария, Alexander → Александр
+   - If no clear translation exists, keep original: Steve Jobs → Стив Джобс
+   - NEVER include: @username, emojis, titles (CEO, директор), company names
+   - If no name found in text, use metadata name as last resort
+   - Clean format: "Иван Петров" NOT "Иван Петров 🚀 CEO"
 2. Assign ONE cluster from this list: {', '.join(clusters)}
 3. Create a 1-2 sentence summary in Russian highlighting their expertise and achievements
 4. Extract their main GOAL - what they want to achieve or find (1 sentence in Russian)
@@ -286,7 +291,15 @@ IMPORTANT:
 - Tags are in Russian, match them carefully
 - Select 3-10 most relevant tags per person
 - If no perfect match, choose the closest relevant tags
-- Focus on their skills, industry, business stage, needs'''
+- Focus on their skills, industry, business stage, needs
+
+NAME EXTRACTION EXAMPLES:
+- "Привет! Меня зовут Александр Петров, я CEO..." → name: "Александр Петров"
+- "Всем привет, Маша из Москвы..." → name: "Мария"
+- "John Smith, разработчик из..." → name: "Джон Смит"
+- "@ivan_petrov Иван, основатель..." → name: "Иван"
+- "...С уважением, Елена Сидорова" → name: "Елена Сидорова"
+- No name in text, metadata shows "Alice Cooper 🚀" → name: "Элис Купер"'''
                 },
                 {
                     'role': 'user',
