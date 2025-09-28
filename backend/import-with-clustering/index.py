@@ -182,7 +182,7 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
         client = OpenAI(api_key=api_key, http_client=http_client)
         
         completion = client.beta.chat.completions.parse(
-            model="gpt-5-mini",
+            model="gpt-5-nano",
             messages=[
                 {
                     'role': 'system',
@@ -234,7 +234,7 @@ IMPORTANT:
                 }
             ],
             response_format=ParticipantBatch,
-            max_completion_tokens=2000
+            max_completion_tokens=4000
         )
         
         # Get parsed result
