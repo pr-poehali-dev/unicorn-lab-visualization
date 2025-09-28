@@ -89,11 +89,10 @@ const ParticipantPopup: React.FC<ParticipantPopupProps> = ({
         <Button
           variant="outline"
           size="sm"
-          className="w-full"
+          className="w-full mt-3 uppercase"
           onClick={() => window.open(participant.postUrl, '_blank')}
         >
-          <Icon name="MessageCircle" size={14} className="mr-2" />
-          Познакомиться в UNICORN LAB
+          ПОЗНАКОМИТЬСЯ В UNICORN LAB
         </Button>
       )}
     </div>
