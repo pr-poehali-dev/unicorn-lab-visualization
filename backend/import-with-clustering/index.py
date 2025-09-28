@@ -233,8 +233,7 @@ IMPORTANT:
                     'content': batch_text
                 }
             ],
-            response_format=ParticipantBatch,
-            max_completion_tokens=4000
+            response_format=ParticipantBatch
         )
         
         # Get parsed result
