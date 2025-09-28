@@ -174,7 +174,7 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
     http_client = None
     if proxy_url:
         http_client = httpx.Client(proxies=proxy_url)
-        print(f"Using proxy: {proxy_url}")
+        print(f"Using proxy: {proxy_url} with GPT-5-mini")
     else:
         print("WARNING: No proxy configured, OpenAI might be blocked")
     
@@ -182,7 +182,7 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
         client = OpenAI(api_key=api_key, http_client=http_client)
         
         completion = client.beta.chat.completions.parse(
-            model="gpt-5-2025-08-07",
+            model="gpt-5-mini",
             messages=[
                 {
                     'role': 'system',
