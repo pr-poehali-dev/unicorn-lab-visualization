@@ -31,7 +31,7 @@ const Index: React.FC = () => {
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [loading, setLoading] = useState(true);
   const [tagsConfig, setTagsConfig] = useState<TagsConfig | null>(null);
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false); // будет обновлено после проверки isMobile
   const [aiSelectedUserIds, setAiSelectedUserIds] = useState<number[]>([]);
 
   // Используем кластеры из БД
@@ -144,6 +144,13 @@ const Index: React.FC = () => {
 
     loadData();
   }, []);
+  
+  // Показываем AI ассистент по умолчанию на десктопе
+  useEffect(() => {
+    if (!isMobile && showAIAssistant === false) {
+      setShowAIAssistant(true);
+    }
+  }, [isMobile]);
 
   // Безопасная установка кластера
   const handleSetCluster = (cluster: string) => {

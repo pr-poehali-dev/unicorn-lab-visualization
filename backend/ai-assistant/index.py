@@ -149,10 +149,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Get completion with structured output
         completion = client.beta.chat.completions.parse(
-            model="gpt-5-nano",  # Using the same model as import-with-clustering
+            model="gpt-5",  # Using full GPT-5 model for better analysis
             messages=openai_messages,
             response_format=AssistantResponse
-            # temperature not supported for gpt-5-nano
+            # temperature not supported for gpt-5
         )
         
         # Parse response
