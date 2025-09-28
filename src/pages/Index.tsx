@@ -55,7 +55,9 @@ const Index: React.FC = () => {
     return entrepreneurs.filter(entrepreneur => {
       // Если выбраны участники через AI, показываем только их
       if (aiSelectedUserIds.length > 0) {
-        return aiSelectedUserIds.includes(entrepreneur.id);
+        // Преобразуем id предпринимателя в число для сравнения
+        const entrepreneurNumericId = parseInt(entrepreneur.id);
+        return aiSelectedUserIds.includes(entrepreneurNumericId);
       }
       
       // Фильтр по кластеру
