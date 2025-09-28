@@ -7,6 +7,41 @@ from typing import Dict, List, Any, Optional, Literal, Tuple
 from datetime import datetime
 from pydantic import BaseModel, Field, ValidationError
 
+def filter_new_participants(participants: List[Dict]) -> List[Dict]:
+    """Filter out participants that already exist in database by post_url"""
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    
+    try:
+        # Get all existing post_urls
+        post_urls = [p.get('messageLink', '') for p in participants if p.get('messageLink')]
+        
+        if not post_urls:
+            # If no post_urls, return all participants
+            return participants
+        
+        # Check which post_urls already exist
+        cur.execute("""
+            SELECT post_url FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs 
+            WHERE post_url = ANY(%s::text[])
+        """, (post_urls,))
+        
+        existing_urls = {row[0] for row in cur.fetchall()}
+        
+        # Filter out participants with existing post_urls
+        new_participants = []
+        for p in participants:
+            post_url = p.get('messageLink', '')
+            if not post_url or post_url not in existing_urls:
+                new_participants.append(p)
+        
+        return new_participants
+        
+    finally:
+        cur.close()
+        conn.close()
+
+
 def get_tags_and_clusters_from_db() -> Tuple[List[str], List[str]]:
     """Load tags and clusters from database"""
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
@@ -114,8 +149,33 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         print(f"Loaded {len(allowed_tags)} tags and {len(clusters)} clusters from DB")
         
-        # Process with AI clustering
-        clustered_participants = process_with_structured_output(participants, allowed_tags, clusters)
+        # Filter out existing participants
+        new_participants = filter_new_participants(participants)
+        
+        if not new_participants:
+            print("No new participants to process")
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'success': True,
+                    'imported': 0,
+                    'updated': 0,
+                    'skipped': len(participants),
+                    'errors': [],
+                    'clusters': {},
+                    'total': len(participants)
+                }),
+                'isBase64Encoded': False
+            }
+        
+        print(f"Found {len(new_participants)} new participants to process")
+        
+        # Process only new participants with AI clustering
+        clustered_participants = process_with_structured_output(new_participants, allowed_tags, clusters)
         
         # Save to database
         result = save_to_database(clustered_participants, participants, allowed_tags, clusters)
@@ -247,8 +307,13 @@ IMPORTANT:
         raise Exception(f"Failed to process participants with AI: {str(e)}")
 
 
-def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: List[str], clusters: List[str]) -> Dict[str, Any]:
-    """Save to database with clustering and tag relations"""
+def save_to_database(parsed: List[Dict], all_participants: List[Dict], allowed_tags: List[str], clusters: List[str]) -> Dict[str, Any]:
+    """Save to database with clustering and tag relations
+    
+    Args:
+        parsed: List of participants processed by AI
+        all_participants: All participants from original request (including skipped ones)
+    """
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     
@@ -269,25 +334,30 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
     # Create lookup for parsed data
     parsed_lookup = {p['telegram_id']: p for p in parsed}
     
-    for participant in original:
+    # Get all existing post_urls for counting skipped
+    existing_post_urls = set()
+    try:
+        post_urls = [p.get('messageLink', '') for p in all_participants if p.get('messageLink')]
+        if post_urls:
+            cur.execute("""
+                SELECT post_url FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs 
+                WHERE post_url = ANY(%s::text[])
+            """, (post_urls,))
+            existing_post_urls = {row[0] for row in cur.fetchall()}
+    except Exception as e:
+        print(f"Error checking existing URLs: {e}")
+    
+    for participant in all_participants:
         try:
             telegram_id = participant.get('authorId', '')
             if not telegram_id:
                 continue
             
-            # Check if already exists by post_url first
+            # Check if already exists by post_url
             post_url = participant.get('messageLink', '')
-            if post_url:
-                cur.execute("""
-                    SELECT id, telegram_id FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs 
-                    WHERE post_url = %s
-                """, (post_url,))
-                existing_by_url = cur.fetchone()
-                
-                if existing_by_url:
-                    # Already processed this participant
-                    skipped_count += 1
-                    continue
+            if post_url and post_url in existing_post_urls:
+                skipped_count += 1
+                continue
             
             # Get parsed data
             parsed_data = parsed_lookup.get(telegram_id)
@@ -387,5 +457,5 @@ def save_to_database(parsed: List[Dict], original: List[Dict], allowed_tags: Lis
         'skipped': skipped_count,
         'errors': errors,
         'clusters': clusters_count,
-        'total': len(original)
+        'total': len(all_participants)
     }
