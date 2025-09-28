@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
@@ -117,11 +116,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
     }
   };
 
-  const clearHistory = () => {
-    setMessages([]);
-    localStorage.removeItem('ai-assistant-messages');
-    toast.success('История очищена');
-  };
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -132,88 +127,49 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-semibold">AI Ассистент</h3>
-        {messages.length > 0 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={clearHistory}
-            title="Очистить историю"
-            className="h-8 w-8"
-          >
-            <Icon name="Trash2" size={16} />
-          </Button>
-        )}
-      </div>
-
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1 p-4">
+      <ScrollArea ref={scrollRef} className="flex-1 p-6">
         {messages.length === 0 && (
-          <div className="text-center text-muted-foreground py-8">
+          <div className="text-center text-muted-foreground py-16">
             <Icon name="MessageCircle" size={48} className="mx-auto mb-4 opacity-20" />
             <p className="text-sm">Задайте вопрос об участниках сообщества</p>
             <p className="text-xs mt-2">Например: "Найди разработчиков для AI проекта"</p>
           </div>
         )}
         
-        <div className="space-y-6">
+        <div className="space-y-8">
           {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} gap-3`}
-            >
-              {/* Avatar for assistant */}
-              {message.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Icon name="Bot" size={16} className="text-primary" />
+            <div key={index} className="w-full">
+              {message.role === 'user' ? (
+                <div className="flex justify-end">
+                  <div className="max-w-[70%] bg-[#2f2f2f] text-white rounded-3xl px-5 py-3">
+                    <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                  </div>
                 </div>
-              )}
-              
-              <div className={`max-w-[70%] ${message.role === 'user' ? 'order-1' : 'order-2'}`}>
-                <div
-                  className={`rounded-2xl px-4 py-3 ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/50 text-foreground'
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+              ) : (
+                <div className="w-full">
+                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-foreground">
+                    {message.content}
+                  </p>
                   {message.related_users_ids && message.related_users_ids.length > 0 && (
                     <button
                       onClick={() => onSelectUsers(message.related_users_ids!)}
-                      className="mt-3 text-xs flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity"
+                      className="mt-3 text-sm text-primary hover:text-primary/80 flex items-center gap-2 transition-colors"
                     >
-                      <Icon name="Users" size={14} />
+                      <Icon name="Users" size={16} />
                       Показать {message.related_users_ids.length} участников
                     </button>
                   )}
-                </div>
-              </div>
-
-              {/* Avatar for user */}
-              {message.role === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 order-2">
-                  <Icon name="User" size={16} />
                 </div>
               )}
             </div>
           ))}
           
           {isLoading && (
-            <div className="flex justify-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Icon name="Bot" size={16} className="text-primary" />
-              </div>
-              <div className="bg-muted/50 rounded-2xl px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                    <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                    <div className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
-                  </div>
-                </div>
+            <div className="w-full">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Icon name="Loader2" size={16} className="animate-spin" />
+                <span className="text-sm">Думаю...</span>
               </div>
             </div>
           )}
@@ -221,37 +177,40 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="p-4 border-t">
+      <div className="border-t p-4">
         <div className="relative max-w-3xl mx-auto">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Отправьте сообщение..."
-            disabled={isLoading}
-            className="w-full resize-none rounded-2xl border bg-background px-4 py-3 pr-12 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            rows={1}
-            style={{
-              minHeight: '44px',
-              maxHeight: '200px'
-            }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={isLoading || !input.trim()}
-            className="absolute bottom-2 right-2 rounded-xl p-2 transition-colors hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Icon 
-              name={isLoading ? "Loader2" : "ArrowUp"} 
-              size={20} 
-              className={isLoading ? "animate-spin" : ""}
+          <div className="relative flex items-end bg-[#2f2f2f] rounded-3xl">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Отправьте сообщение..."
+              disabled={isLoading}
+              className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-12 text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              rows={1}
+              style={{
+                minHeight: '52px',
+                maxHeight: '200px'
+              }}
             />
-          </button>
+            <button
+              onClick={sendMessage}
+              disabled={isLoading || !input.trim()}
+              className={`absolute right-2 bottom-2 p-1.5 rounded-lg transition-all ${
+                input.trim() && !isLoading 
+                  ? 'bg-white text-black hover:bg-gray-200' 
+                  : 'bg-[#424242] text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Icon 
+                name="ArrowUp" 
+                size={20} 
+                className="stroke-2"
+              />
+            </button>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground text-center mt-2">
-          Нажмите Enter для отправки, Shift+Enter для новой строки
-        </p>
       </div>
     </div>
   );
