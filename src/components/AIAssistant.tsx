@@ -208,10 +208,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
             {messages.length > 0 && (
               <button
                 onClick={() => setShowDeleteDialog(true)}
-                className="absolute right-12 bottom-2.5 text-gray-400 hover:text-orange-500 transition-colors p-2"
+                className="absolute right-12 bottom-2.5 text-gray-400 hover:text-orange-500 transition-colors p-1.5"
                 title="Очистить историю"
               >
-                🗑️
+                <Icon name="Trash" size={18} />
               </button>
             )}
             <button

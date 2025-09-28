@@ -375,6 +375,13 @@ const Index: React.FC = () => {
         onToggleParser={() => setShowParser(!showParser)}
       />
 
+            <GraphStats
+              tagsConfig={tagsConfig}
+              filteredEntrepreneurs={filteredEntrepreneurs}
+              totalEntrepreneurs={entrepreneurs.length}
+              loading={loading}
+            />
+
 
 
             {/* Попап с информацией об участнике */}

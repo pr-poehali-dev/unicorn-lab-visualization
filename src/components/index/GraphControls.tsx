@@ -38,11 +38,6 @@ const GraphControls: React.FC<GraphControlsProps> = ({
         >
           <Icon name="RotateCcw" size={16} />
         </Button>
-        <div className="bg-background/90 backdrop-blur px-3 h-8 flex items-center rounded-md border">
-          <span className="text-sm text-muted-foreground">
-            {loading ? '...' : `${filteredCount} узлов`}
-          </span>
-        </div>
       </div>
 
       {/* Кнопки управления зумом */}
