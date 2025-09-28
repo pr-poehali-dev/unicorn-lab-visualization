@@ -182,7 +182,7 @@ def process_with_structured_output(participants: List[Dict], allowed_tags: List[
         client = OpenAI(api_key=api_key, http_client=http_client)
         
         completion = client.beta.chat.completions.parse(
-            model="gpt-4o-2024-08-06",
+            model="gpt-5-2025-08-07",
             messages=[
                 {
                     'role': 'system',
@@ -234,8 +234,7 @@ IMPORTANT:
                 }
             ],
             response_format=ParticipantBatch,
-            max_tokens=800,
-            temperature=0
+            max_completion_tokens=2000
         )
         
         # Get parsed result
