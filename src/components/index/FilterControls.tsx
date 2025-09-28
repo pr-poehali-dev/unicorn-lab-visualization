@@ -7,6 +7,7 @@ interface FilterControlsProps {
   clusters: string[];
   selectedCluster: string;
   selectedTags: string[];
+  tagFilterMode?: 'OR' | 'AND';
   showClusterDropdown: boolean;
   showTagsDropdown: boolean;
   tagCategories: Array<{
@@ -19,12 +20,14 @@ interface FilterControlsProps {
   onToggleClusterDropdown: () => void;
   onToggleTagsDropdown: () => void;
   onClearTags: () => void;
+  onSetTagFilterMode?: (mode: 'OR' | 'AND') => void;
 }
 
 const FilterControls: React.FC<FilterControlsProps> = ({
   clusters,
   selectedCluster,
   selectedTags,
+  tagFilterMode = 'OR',
   showClusterDropdown,
   showTagsDropdown,
   tagCategories,
@@ -32,7 +35,8 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   onToggleTag,
   onToggleClusterDropdown,
   onToggleTagsDropdown,
-  onClearTags
+  onClearTags,
+  onSetTagFilterMode
 }) => {
   return (
     <div className="absolute top-8 left-8 flex items-center gap-2">
@@ -84,6 +88,42 @@ const FilterControls: React.FC<FilterControlsProps> = ({
         
         {showTagsDropdown && tagCategories.length > 0 && (
           <div data-dropdown-content="tags" className="absolute top-full left-0 mt-1 bg-background border rounded-md shadow-lg py-2 min-w-[280px] max-h-[400px] overflow-y-auto z-50">
+            {/* Переключатель режима фильтрации */}
+            {onSetTagFilterMode && (
+              <div className="px-3 pb-2 mb-2 border-b">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Режим фильтрации:</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => onSetTagFilterMode('OR')}
+                      className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                        tagFilterMode === 'OR' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      ИЛИ
+                    </button>
+                    <button
+                      onClick={() => onSetTagFilterMode('AND')}
+                      className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                        tagFilterMode === 'AND' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      И
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {tagFilterMode === 'OR' 
+                    ? 'Показывать участников с любым из выбранных тегов' 
+                    : 'Показывать участников со всеми выбранными тегами'}
+                </p>
+              </div>
+            )}
+            
             {tagCategories.map(category => (
               <div key={category.key} className="px-3 py-2">
                 <p className="text-xs font-medium text-muted-foreground mb-1">{category.label}</p>

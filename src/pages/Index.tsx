@@ -16,6 +16,7 @@ const Index: React.FC = () => {
 
   const [selectedCluster, setSelectedCluster] = useState('Все');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagFilterMode, setTagFilterMode] = useState<'OR' | 'AND'>('OR'); // Режим фильтрации тегов
   const [selectedParticipant, setSelectedParticipant] = useState<Entrepreneur | null>(null);
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
   const [showClusterDropdown, setShowClusterDropdown] = useState(false);
@@ -53,18 +54,28 @@ const Index: React.FC = () => {
 
       // Фильтр по тегам
       if (selectedTags.length > 0) {
-        // Проверяем, что у предпринимателя есть теги и хотя бы один совпадает
+        // Проверяем, что у предпринимателя есть теги
         if (!entrepreneur.tags || !Array.isArray(entrepreneur.tags)) {
           return false;
         }
-        if (!selectedTags.some(tag => entrepreneur.tags.includes(tag))) {
-          return false;
+        
+        // Логика фильтрации в зависимости от режима
+        if (tagFilterMode === 'OR') {
+          // ИЛИ: хотя бы один тег должен совпадать
+          if (!selectedTags.some(tag => entrepreneur.tags.includes(tag))) {
+            return false;
+          }
+        } else {
+          // И: все выбранные теги должны присутствовать
+          if (!selectedTags.every(tag => entrepreneur.tags.includes(tag))) {
+            return false;
+          }
         }
       }
 
       return true;
     });
-  }, [entrepreneurs, selectedCluster, selectedTags]);
+  }, [entrepreneurs, selectedCluster, selectedTags, tagFilterMode]);
 
   // Фильтрация edges - только связи между видимыми узлами
   const filteredEdges = useMemo(() => {
@@ -250,6 +261,7 @@ const Index: React.FC = () => {
         clusters={clusters}
         selectedCluster={selectedCluster}
         selectedTags={selectedTags}
+        tagFilterMode={tagFilterMode}
         showClusterDropdown={showClusterDropdown}
         showTagsDropdown={showTagsDropdown}
         tagCategories={tagCategories}
@@ -258,6 +270,7 @@ const Index: React.FC = () => {
         onToggleClusterDropdown={toggleClusterDropdown}
         onToggleTagsDropdown={toggleTagsDropdown}
         onClearTags={handleClearTags}
+        onSetTagFilterMode={setTagFilterMode}
       />
 
       <GraphControls
