@@ -186,18 +186,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
       )}
       
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1 p-6">
-        {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full">
+      <ScrollArea ref={scrollRef} className="flex-1">
+        <div className={`p-6 ${messages.length === 0 ? 'min-h-full flex items-center justify-center' : ''}`}>
+          {messages.length === 0 ? (
             <div className="text-center text-muted-foreground">
               <Icon name="MessageCircleHeart" size={48} className="mx-auto mb-4 opacity-20" />
               <p className="text-sm">Задайте вопрос об участниках сообщества</p>
               <p className="text-xs mt-2">Например: «Найди разработчиков для ИИ проекта»</p>
             </div>
-          </div>
-        )}
-        
-        <div className="space-y-8">
+          ) : (
+            <div className="space-y-8">
           {messages.map((message, index) => (
             <div key={index} className="w-full">
               {message.role === 'user' ? (
@@ -224,13 +222,15 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
               )}
             </div>
           ))}
-          
-          {isLoading && (
+              
+              {isLoading && (
             <div className="w-full">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Icon name="Loader2" size={16} className="animate-spin" />
                 <span className="text-sm">Думаю...</span>
               </div>
+            </div>
+            )}
             </div>
           )}
         </div>
