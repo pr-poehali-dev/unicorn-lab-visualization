@@ -30,14 +30,14 @@ const GraphControls: React.FC<GraphControlsProps> = ({
         >
           <Icon name="Upload" size={16} />
         </Button>
-        <Button
+        {/* <Button
           onClick={() => forceGraphRef.current?.resetNodePositions()}
           variant="outline"
           size="icon"
           className="bg-background/90 backdrop-blur h-8 w-8"
         >
           <Icon name="RotateCcw" size={16} />
-        </Button>
+        </Button> */}
       </div>
 
       {/* Кнопки управления зумом */}
