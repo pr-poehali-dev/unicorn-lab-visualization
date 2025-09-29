@@ -71,7 +71,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
           display: 'block',
           position: 'absolute',
           top: 0,
-          left: 0
+          left: 0,
+          willChange: 'transform',
+          transform: 'translateZ(0)' // Force GPU acceleration
         }}
         className="pointer-events-none"
       />
@@ -83,7 +85,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
           position: 'absolute',
           top: 0,
           left: 0,
-          cursor: hoveredNodeId ? 'pointer' : 'grab'
+          cursor: hoveredNodeId ? 'pointer' : 'grab',
+          willChange: 'transform',
+          transform: 'translateZ(0)' // Force GPU acceleration
         }}
         className="active:cursor-grabbing touch-none select-none"
         onMouseDown={handleMouseDown}

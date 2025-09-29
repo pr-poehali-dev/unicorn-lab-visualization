@@ -17,9 +17,18 @@ export function useZoomHandlers({
 }: ZoomHandlersProps) {
   const zoomAnimationFrame = useRef<number | null>(null);
   const panAnimationFrame = useRef<number | null>(null);
+  const lastWheelTime = useRef<number>(0);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
+    
+    // Throttle wheel events for Safari
+    const now = performance.now();
+    if (isSafari && now - lastWheelTime.current < 16) {
+      return;
+    }
+    lastWheelTime.current = now;
     
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;

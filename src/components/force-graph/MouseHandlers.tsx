@@ -63,7 +63,10 @@ export function useMouseHandlers({
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     // Throttle mousemove events for better performance in Safari
     const now = performance.now();
-    if (now - lastMoveTime.current < moveThrottle) {
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const throttleTime = isSafari ? 32 : 16; // Больше throttle для Safari
+    
+    if (now - lastMoveTime.current < throttleTime) {
       return;
     }
     lastMoveTime.current = now;
