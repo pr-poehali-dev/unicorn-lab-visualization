@@ -34,6 +34,18 @@ export function useSimulation({
     if (simulationRef.current && nodesRef.current.length > 0) {
       const existingNodesMap = new Map(nodesRef.current.map(n => [n.id, n]));
       
+      // Определяем связанные узлы
+      const connectedNodeIds = new Set<string>();
+      edges.forEach(edge => {
+        const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id;
+        const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id;
+        connectedNodeIds.add(sourceId);
+        connectedNodeIds.add(targetId);
+      });
+      
+      // Подсчитываем количество новых несвязанных узлов для сетки
+      let unconnectedIndex = 0;
+      
       // Обновляем существующие узлы или создаем новые
       const simNodes: SimulationNode[] = nodes.map(node => {
         const existingNode = existingNodesMap.get(node.id);
@@ -44,10 +56,31 @@ export function useSimulation({
         } else {
           // Создаем новый узел
           const savedPos = nodePositionsRef.current.get(node.id);
+          const isConnected = connectedNodeIds.has(node.id);
+          
+          let x = savedPos ? savedPos.x : dimensions.width / 2;
+          let y = savedPos ? savedPos.y : dimensions.height / 2;
+          
+          if (!savedPos && !isConnected) {
+            // Размещаем несвязанные узлы в компактной сетке
+            const cols = 5; // Фиксированное количество колонок
+            const row = Math.floor(unconnectedIndex / cols);
+            const col = unconnectedIndex % cols;
+            const spacing = 80;
+            
+            x = dimensions.width / 2 + (col - cols / 2) * spacing;
+            y = dimensions.height / 2 + row * spacing;
+            unconnectedIndex++;
+          } else if (!savedPos && isConnected) {
+            // Для связанных узлов - в пределах viewport
+            x = dimensions.width * 0.2 + Math.random() * dimensions.width * 0.6;
+            y = dimensions.height * 0.2 + Math.random() * dimensions.height * 0.6;
+          }
+          
           const newNode: SimulationNode = {
             id: node.id,
-            x: savedPos ? savedPos.x : Math.random() * dimensions.width,
-            y: savedPos ? savedPos.y : Math.random() * dimensions.height,
+            x,
+            y,
             data: node
           };
           
@@ -89,12 +122,42 @@ export function useSimulation({
     }
     
     // Создание новой симуляции
-    const simNodes: SimulationNode[] = nodes.map(node => {
+    // Сначала определим, какие узлы будут связаны
+    const connectedNodeIds = new Set<string>();
+    edges.forEach(edge => {
+      const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id;
+      const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id;
+      connectedNodeIds.add(sourceId);
+      connectedNodeIds.add(targetId);
+    });
+
+    const simNodes: SimulationNode[] = nodes.map((node, index) => {
       const savedPos = nodePositionsRef.current.get(node.id);
+      const isConnected = connectedNodeIds.has(node.id);
+      
+      // Для несвязанных узлов используем сетку в центре viewport
+      let x = savedPos ? savedPos.x : dimensions.width / 2;
+      let y = savedPos ? savedPos.y : dimensions.height / 2;
+      
+      if (!savedPos && !isConnected) {
+        // Размещаем несвязанные узлы в сетке вокруг центра
+        const cols = Math.ceil(Math.sqrt(nodes.length));
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        const spacing = 100;
+        
+        x = dimensions.width / 2 + (col - cols / 2) * spacing;
+        y = dimensions.height / 2 + (row - Math.ceil(nodes.length / cols) / 2) * spacing;
+      } else if (!savedPos && isConnected) {
+        // Для связанных узлов без сохраненных позиций - случайные в пределах viewport
+        x = dimensions.width * 0.2 + Math.random() * dimensions.width * 0.6;
+        y = dimensions.height * 0.2 + Math.random() * dimensions.height * 0.6;
+      }
+      
       const newNode: SimulationNode = {
         id: node.id,
-        x: savedPos ? savedPos.x : Math.random() * dimensions.width,
-        y: savedPos ? savedPos.y : Math.random() * dimensions.height,
+        x,
+        y,
         data: node
       };
       
@@ -129,6 +192,17 @@ export function useSimulation({
         .radius(60)
         .strength(0.7)
       )
+      // Добавляем силу, которая удерживает несвязанные узлы ближе к центру
+      .force('position', d3.forceRadial((d: SimulationNode) => {
+        // Проверяем, связан ли узел
+        const hasConnection = simEdges.some(edge => {
+          const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id;
+          const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id;
+          return sourceId === d.id || targetId === d.id;
+        });
+        // Несвязанные узлы притягиваются к радиусу 200 от центра
+        return hasConnection ? 0 : 200;
+      }, dimensions.width / 2, dimensions.height / 2).strength(0.1))
       .velocityDecay(0.6)
       .alphaTarget(0);
 
