@@ -35,7 +35,6 @@ export function useMouseHandlers({
   const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isPanning = useRef(false);
   const panStartPos = useRef<{ x: number; y: number } | null>(null);
-  const panAnimationFrame = useRef<number | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -54,28 +53,25 @@ export function useMouseHandlers({
       simulationRef.current?.alpha(0.3).restart();
     } else {
       isPanning.current = true;
-      panStartPos.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
+      panStartPos.current = { x: e.clientX, y: e.clientY };
     }
   }, [getNodeAtPosition, setDraggedNode, panRef, zoomRef, simulationRef]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     // Убираем throttling для плавного 60 FPS
 
-    if (isPanning.current) {
-      panRef.current = {
-        x: e.clientX - panStartPos.current!.x,
-        y: e.clientY - panStartPos.current!.y
-      };
+    if (isPanning.current && panStartPos.current) {
+      const deltaX = e.clientX - panStartPos.current.x;
+      const deltaY = e.clientY - panStartPos.current.y;
       
-      if (panAnimationFrame.current) {
-        cancelAnimationFrame(panAnimationFrame.current);
-      }
+      // Обновляем pan напрямую для мгновенного отклика
+      setPan(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
       
-      drawGraph();
-      
-      panAnimationFrame.current = requestAnimationFrame(() => {
-        setPan({ ...panRef.current });
-      });
+      // Обновляем startPos для следующего движения
+      panStartPos.current = { x: e.clientX, y: e.clientY };
       
       return;
     }
@@ -109,11 +105,6 @@ export function useMouseHandlers({
     if (isPanning.current) {
       isPanning.current = false;
       panStartPos.current = null;
-      if (panAnimationFrame.current) {
-        cancelAnimationFrame(panAnimationFrame.current);
-        panAnimationFrame.current = null;
-      }
-      setPan({ ...panRef.current });
       return;
     }
     
@@ -246,7 +237,7 @@ export function useMouseHandlers({
       simulationRef.current?.alpha(0.3).restart();
     } else {
       isPanning.current = true;
-      panStartPos.current = { x: touch.clientX - panRef.current.x, y: touch.clientY - panRef.current.y };
+      panStartPos.current = { x: touch.clientX, y: touch.clientY };
     }
   }, [getNodeAtPosition, setDraggedNode, panRef, zoomRef, simulationRef]);
 
@@ -259,21 +250,18 @@ export function useMouseHandlers({
     
     const touch = e.touches[0];
     
-    if (isPanning.current) {
-      panRef.current = {
-        x: touch.clientX - panStartPos.current!.x,
-        y: touch.clientY - panStartPos.current!.y
-      };
+    if (isPanning.current && panStartPos.current) {
+      const deltaX = touch.clientX - panStartPos.current.x;
+      const deltaY = touch.clientY - panStartPos.current.y;
       
-      if (panAnimationFrame.current) {
-        cancelAnimationFrame(panAnimationFrame.current);
-      }
+      // Обновляем pan напрямую для мгновенного отклика
+      setPan(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
       
-      drawGraph();
-      
-      panAnimationFrame.current = requestAnimationFrame(() => {
-        setPan({ ...panRef.current });
-      });
+      // Обновляем startPos для следующего движения
+      panStartPos.current = { x: touch.clientX, y: touch.clientY };
       
       return;
     }
@@ -298,11 +286,6 @@ export function useMouseHandlers({
     if (isPanning.current) {
       isPanning.current = false;
       panStartPos.current = null;
-      if (panAnimationFrame.current) {
-        cancelAnimationFrame(panAnimationFrame.current);
-        panAnimationFrame.current = null;
-      }
-      setPan({ ...panRef.current });
       return;
     }
     
