@@ -5,13 +5,14 @@ import FilterControls from '@/components/index/FilterControls';
 import GraphStats from '@/components/index/GraphStats';
 import GraphControls from '@/components/index/GraphControls';
 import ParticipantPopup from '@/components/index/ParticipantPopup';
+import MobileView from '@/components/index/MobileView';
+import DesktopView from '@/components/index/DesktopView';
+import { useDataLoader } from '@/components/index/DataLoader';
+import { useFilterLogic } from '@/components/index/FilterLogic';
 import { Entrepreneur, GraphEdge } from '@/types/entrepreneur';
 import Icon from '@/components/ui/icon';
-import { Button } from '@/components/ui/button';
 import TelegramParser from '@/components/TelegramParser';
-import AIAssistant from '@/components/AIAssistant';
-import { ApiService } from '@/services/api';
-import { TagsService, TagsConfig } from '@/services/tagsService';
+import { TagsConfig } from '@/services/tagsService';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const Index: React.FC = () => {
@@ -22,7 +23,7 @@ const Index: React.FC = () => {
 
   const [selectedCluster, setSelectedCluster] = useState('Все');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [tagFilterMode, setTagFilterMode] = useState<'OR' | 'AND'>('OR'); // Режим фильтрации тегов
+  const [tagFilterMode, setTagFilterMode] = useState<'OR' | 'AND'>('OR');
   const [selectedParticipant, setSelectedParticipant] = useState<Entrepreneur | null>(null);
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
   const [showClusterDropdown, setShowClusterDropdown] = useState(false);
@@ -33,16 +34,14 @@ const Index: React.FC = () => {
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [loading, setLoading] = useState(true);
   const [tagsConfig, setTagsConfig] = useState<TagsConfig | null>(null);
-  const [showAIAssistant, setShowAIAssistant] = useState(false); // будет обновлено после проверки isMobile
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [aiSelectedUserIds, setAiSelectedUserIds] = useState<string[]>([]);
 
-  // Используем кластеры из БД
   const clusters = useMemo(() => {
     if (!tagsConfig) return ['Все'];
     return ['Все', ...tagsConfig.clusters];
   }, [tagsConfig]);
 
-  // Категории тегов для группировки в UI
   const tagCategories = useMemo(() => {
     if (!tagsConfig) return [];
     return tagsConfig.categories.map(cat => ({
@@ -52,129 +51,44 @@ const Index: React.FC = () => {
     }));
   }, [tagsConfig]);
 
-  // Фильтрация предпринимателей
-  const filteredEntrepreneurs = useMemo(() => {
-    return entrepreneurs.filter(entrepreneur => {
-      // Если выбраны участники через AI, показываем только их
-      if (aiSelectedUserIds.length > 0) {
-        // AI возвращает числовые ID, а entrepreneur.id может быть telegram_id или просто id.toString()
-        // Нужно проверить оба варианта
-        const entrepreneurIdAsString = entrepreneur.id;
-        const isSelectedById = aiSelectedUserIds.some(aiId => {
-          // Проверяем точное совпадение со строковым представлением
-          return entrepreneurIdAsString === aiId.toString() || 
-                 entrepreneurIdAsString === String(aiId);
-        });
-        
-        console.log('AI Filter Debug:', {
-          entrepreneurId: entrepreneur.id,
-          aiSelectedUserIds,
-          isSelectedById,
-          entrepreneurName: entrepreneur.name
-        });
-        
-        return isSelectedById;
+  const { filteredEntrepreneurs, filteredEdges } = useFilterLogic({
+    entrepreneurs,
+    edges,
+    selectedCluster,
+    selectedTags,
+    tagFilterMode,
+    aiSelectedUserIds
+  });
+
+  useDataLoader({
+    onDataLoaded: ({ entrepreneurs: loadedEntrepreneurs, edges: loadedEdges, tagsConfig: loadedTagsConfig }) => {
+      setEntrepreneurs(loadedEntrepreneurs);
+      setEdges(loadedEdges);
+      setTagsConfig(loadedTagsConfig);
+      
+      if (selectedCluster !== 'Все' && loadedTagsConfig && !loadedTagsConfig.clusters.includes(selectedCluster)) {
+        setSelectedCluster('Все');
       }
       
-      // Фильтр по кластеру
-      if (selectedCluster !== 'Все' && entrepreneur.cluster !== selectedCluster) {
-        return false;
+      const allTags = loadedTagsConfig ? Object.values(loadedTagsConfig.tagsByCategory).flat() : [];
+      const validSelectedTags = selectedTags.filter(tag => allTags.includes(tag));
+      if (validSelectedTags.length !== selectedTags.length) {
+        setSelectedTags(validSelectedTags);
       }
-
-      // Фильтр по тегам
-      if (selectedTags.length > 0) {
-        // Проверяем, что у предпринимателя есть теги
-        if (!entrepreneur.tags || !Array.isArray(entrepreneur.tags)) {
-          return false;
-        }
-        
-        // Логика фильтрации в зависимости от режима
-        if (tagFilterMode === 'OR') {
-          // ИЛИ: хотя бы один тег должен совпадать
-          if (!selectedTags.some(tag => entrepreneur.tags.includes(tag))) {
-            return false;
-          }
-        } else {
-          // И: все выбранные теги должны присутствовать
-          if (!selectedTags.every(tag => entrepreneur.tags.includes(tag))) {
-            return false;
-          }
-        }
-      }
-
-      return true;
-    });
-  }, [entrepreneurs, selectedCluster, selectedTags, tagFilterMode, aiSelectedUserIds]);
-
-  // Фильтрация edges - только связи между видимыми узлами
-  const filteredEdges = useMemo(() => {
-    const visibleIds = new Set(filteredEntrepreneurs.map(e => e.id));
-    return edges.filter(edge => {
-      // Проверяем, что оба узла видимы
-      const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id;
-      const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id;
-      return visibleIds.has(sourceId) && visibleIds.has(targetId);
-    });
-  }, [edges, filteredEntrepreneurs]);
-
-  // Загрузка данных из БД
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        
-        // Загружаем конфигурацию тегов и участников параллельно
-        const [tagsConfigData, participantsData] = await Promise.all([
-          TagsService.getTagsConfig(),
-          ApiService.getParticipants()
-        ]);
-        
-        setTagsConfig(tagsConfigData);
-        const { entrepreneurs: loadedEntrepreneurs, edges: loadedEdges } = ApiService.transformToEntrepreneurs(participantsData);
-        
-        // Валидация данных предпринимателей
-        const validatedEntrepreneurs = loadedEntrepreneurs.map(entrepreneur => ({
-          ...entrepreneur,
-          tags: Array.isArray(entrepreneur.tags) ? entrepreneur.tags : [],
-          cluster: entrepreneur.cluster || 'Без кластера'
-        }));
-        
-        setEntrepreneurs(validatedEntrepreneurs);
-        setEdges(loadedEdges);
-        
-        // Сбросим выбранные фильтры, если они невалидны
-        if (selectedCluster !== 'Все' && tagsConfigData && !tagsConfigData.clusters.includes(selectedCluster)) {
-          setSelectedCluster('Все');
-        }
-        
-        // Проверяем теги
-        const allTags = tagsConfigData ? Object.values(tagsConfigData.tagsByCategory).flat() : [];
-        const validSelectedTags = selectedTags.filter(tag => allTags.includes(tag));
-        if (validSelectedTags.length !== selectedTags.length) {
-          setSelectedTags(validSelectedTags);
-        }
-      } catch (error) {
-        console.error('Failed to load data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+    },
+    onLoadingChange: setLoading,
+    selectedCluster,
+    selectedTags
+  });
   
-  // Показываем AI ассистент по умолчанию на десктопе
   useEffect(() => {
     if (!isMobile) {
       setShowAIAssistant(true);
     }
   }, [isMobile]);
 
-  // Безопасная установка кластера
   const handleSetCluster = (cluster: string) => {
-    // Проверяем, что кластер существует
     if (cluster === 'Все' || (tagsConfig && tagsConfig.clusters.includes(cluster))) {
-      // Запускаем анимацию
       setIsTransitioning(true);
       setTimeout(() => {
         setSelectedCluster(cluster);
@@ -182,17 +96,14 @@ const Index: React.FC = () => {
       }, 150);
       setShowClusterDropdown(false);
     } else {
-      setSelectedCluster('Все'); // Сбрасываем на безопасное значение
+      setSelectedCluster('Все');
       setShowClusterDropdown(false);
     }
   };
 
-  // Безопасное добавление/удаление тега
   const handleToggleTag = (tag: string) => {
-    // Проверяем, что тег существует в конфигурации
     const allTags = tagsConfig ? Object.values(tagsConfig.tagsByCategory).flat() : [];
     if (allTags.includes(tag)) {
-      // Запускаем анимацию
       setIsTransitioning(true);
       setTimeout(() => {
         if (selectedTags.includes(tag)) {
@@ -206,35 +117,29 @@ const Index: React.FC = () => {
   };
 
   const handleNodeClick = (entrepreneur: Entrepreneur, position: { x: number; y: number }) => {
-    // На мобильных устройствах сначала центрируем, потом открываем попап
     if (isMobile && forceGraphRef.current) {
       const node = forceGraphRef.current?.getNodeById?.(entrepreneur.id);
       if (node) {
-        // Сначала центрируем ноду, поднимаем выше (250px вверх от центра)
         forceGraphRef.current?.centerNode?.(node, 250);
         
-        // Задержка перед открытием попапа, чтобы успела отцентрироваться
         setTimeout(() => {
-          // Вычисляем новую позицию попапа после центрирования
           const screenWidth = window.innerWidth;
           const screenHeight = window.innerHeight;
           const newPosition = {
             x: screenWidth / 2,
-            y: (screenHeight / 2) - 250 // Та же высота, что и при центрировании
+            y: (screenHeight / 2) - 250
           };
           
           setSelectedParticipant(entrepreneur);
           setPopupPosition(newPosition);
-        }, 300); // 300мс задержка для плавности
+        }, 300);
       }
     } else {
-      // На десктопе открываем сразу
       setSelectedParticipant(entrepreneur);
       setPopupPosition(position);
     }
   };
 
-  // Закрытие попапа участника при клике вне
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (participantPopupRef.current && !participantPopupRef.current.contains(event.target as Node)) {
@@ -249,12 +154,10 @@ const Index: React.FC = () => {
     }
   }, [selectedParticipant]);
 
-  // Закрытие dropdown при клике вне
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       
-      // Проверяем, что клик был не по кнопкам dropdown
       if (!target.closest('[data-dropdown-trigger]') && !target.closest('[data-dropdown-content]')) {
         setShowClusterDropdown(false);
         setShowTagsDropdown(false);
@@ -291,25 +194,20 @@ const Index: React.FC = () => {
     setIsTransitioning(true);
     setTimeout(() => {
       setAiSelectedUserIds(userIds);
-      // Сбрасываем другие фильтры при выборе через AI
       setSelectedCluster('Все');
       setSelectedTags([]);
       setIsTransitioning(false);
       
-      // На мобильных устройствах центрируем граф после фильтрации
       if (isMobile && forceGraphRef.current) {
         setTimeout(() => {
-          // Находим центр масс выбранных участников
           const selectedNodes = userIds
             .map(id => forceGraphRef.current?.getNodeById(id))
             .filter(node => node !== undefined);
           
           if (selectedNodes.length > 0) {
-            // Вычисляем центр масс
             const centerX = selectedNodes.reduce((sum, node) => sum + node!.x, 0) / selectedNodes.length;
             const centerY = selectedNodes.reduce((sum, node) => sum + node!.y, 0) / selectedNodes.length;
             
-            // Создаем виртуальную ноду в центре масс
             const centerNode = {
               id: 'center',
               x: centerX,
@@ -317,10 +215,9 @@ const Index: React.FC = () => {
               data: {} as any
             } as SimulationNode;
             
-            // Центрируем на эту виртуальную ноду (с небольшим смещением вверх)
             forceGraphRef.current?.centerNode(centerNode, 100);
           }
-        }, 500); // Даем время на обновление графа
+        }, 500);
       }
     }, 150);
   };
@@ -336,18 +233,14 @@ const Index: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Левая панель с AI ассистентом - только на десктопе */}
-          {!isMobile && showAIAssistant && (
-            <div className="w-[400px] border-r border-border flex-shrink-0 bg-background">
-              <AIAssistant
-                entrepreneurs={filteredEntrepreneurs}
-                onSelectUsers={handleAISelectUsers}
-                isVisible={true}
-              />
-            </div>
+          {!isMobile && (
+            <DesktopView
+              showAIAssistant={showAIAssistant}
+              filteredEntrepreneurs={filteredEntrepreneurs}
+              onAISelectUsers={handleAISelectUsers}
+            />
           )}
 
-          {/* Правая часть с канвасом */}
           <div className="flex-1 relative">
             <div 
               className="absolute inset-0 transition-opacity duration-300"
@@ -367,68 +260,52 @@ const Index: React.FC = () => {
               />
             </div>
             
-            {/* Переключатель табов для мобильных */}
             {isMobile && (
-              <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30">
-                <div className="bg-background/90 backdrop-blur border rounded-full p-1 flex gap-1">
-                  <button
-                    onClick={() => setMobileView('chat')}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      mobileView === 'chat'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    ЧАТ
-                  </button>
-                  <button
-                    onClick={() => setMobileView('map')}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      mobileView === 'map'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    КАРТА
-                  </button>
-                </div>
-              </div>
+              <MobileView
+                mobileView={mobileView}
+                setMobileView={setMobileView}
+                filteredEntrepreneurs={filteredEntrepreneurs}
+                filteredEdges={filteredEdges}
+                selectedCluster={selectedCluster}
+                selectedTags={selectedTags}
+                tagsConfig={tagsConfig}
+                forceGraphRef={forceGraphRef}
+                onNodeClick={handleNodeClick}
+                onAISelectUsers={handleAISelectUsers}
+              />
             )}
 
-            {/* Компоненты управления и отображения */}
             <FilterControls
-        clusters={clusters}
-        selectedCluster={selectedCluster}
-        selectedTags={selectedTags}
-        tagFilterMode={tagFilterMode}
-        showClusterDropdown={showClusterDropdown}
-        showTagsDropdown={showTagsDropdown}
-        tagCategories={tagCategories}
-        aiSelectedUserIds={aiSelectedUserIds}
-        onSetCluster={handleSetCluster}
-        onToggleTag={handleToggleTag}
-        onToggleClusterDropdown={toggleClusterDropdown}
-        onToggleTagsDropdown={toggleTagsDropdown}
-        onClearTags={handleClearTags}
-        onSetTagFilterMode={setTagFilterMode}
-        onClearAIFilter={() => {
-          setIsTransitioning(true);
-          setTimeout(() => {
-            setAiSelectedUserIds([]);
-            setIsTransitioning(false);
-          }, 150);
-        }}
+              clusters={clusters}
+              selectedCluster={selectedCluster}
+              selectedTags={selectedTags}
+              tagFilterMode={tagFilterMode}
+              showClusterDropdown={showClusterDropdown}
+              showTagsDropdown={showTagsDropdown}
+              tagCategories={tagCategories}
+              aiSelectedUserIds={aiSelectedUserIds}
+              onSetCluster={handleSetCluster}
+              onToggleTag={handleToggleTag}
+              onToggleClusterDropdown={toggleClusterDropdown}
+              onToggleTagsDropdown={toggleTagsDropdown}
+              onClearTags={handleClearTags}
+              onSetTagFilterMode={setTagFilterMode}
+              onClearAIFilter={() => {
+                setIsTransitioning(true);
+                setTimeout(() => {
+                  setAiSelectedUserIds([]);
+                  setIsTransitioning(false);
+                }, 150);
+              }}
             />
 
-
-
             <GraphControls
-        showParser={showParser}
-        loading={loading}
-        filteredCount={filteredEntrepreneurs.length}
-        forceGraphRef={forceGraphRef}
-        onToggleParser={() => setShowParser(!showParser)}
-      />
+              showParser={showParser}
+              loading={loading}
+              filteredCount={filteredEntrepreneurs.length}
+              forceGraphRef={forceGraphRef}
+              onToggleParser={() => setShowParser(!showParser)}
+            />
 
             <GraphStats
               tagsConfig={tagsConfig}
@@ -437,9 +314,6 @@ const Index: React.FC = () => {
               loading={loading}
             />
 
-
-
-            {/* Попап с информацией об участнике */}
             {selectedParticipant && popupPosition && (
               <ParticipantPopup
                 participant={selectedParticipant}
@@ -453,72 +327,10 @@ const Index: React.FC = () => {
               />
             )}
 
-            {/* Компонент парсера */}
             {showParser && (
               <div className="fixed bottom-4 right-4 z-20 w-[500px] max-h-[600px] overflow-y-auto shadow-2xl">
                 <TelegramParser />
               </div>
-            )}
-
-            {/* Мобильные вьюшки */}
-            {isMobile && (
-              <>
-                {/* Карта */}
-                <div 
-                  className={`absolute inset-0 transition-opacity duration-300 ${
-                    mobileView === 'map' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                  }`}
-                  onTouchMove={(e) => e.preventDefault()}
-                >
-                  <ForceGraph
-                    key={`mobile-${selectedCluster}-${selectedTags.join(',')}`}
-                    ref={forceGraphRef}
-                    nodes={filteredEntrepreneurs}
-                    edges={filteredEdges}
-                    onNodeClick={handleNodeClick}
-                    selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
-                    clusterColors={tagsConfig?.clusterColors || {}}
-                  />
-                  
-                  {/* Zoom controls for mobile */}
-                  <div className="absolute bottom-20 right-4 flex flex-col gap-2">
-                    <button
-                      onClick={() => forceGraphRef.current?.zoomIn()}
-                      className="w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white transition-colors"
-                      aria-label="Увеличить"
-                    >
-                      <Icon name="Plus" size={20} />
-                    </button>
-                    <button
-                      onClick={() => forceGraphRef.current?.zoomOut()}
-                      className="w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white transition-colors"
-                      aria-label="Уменьшить"
-                    >
-                      <Icon name="Minus" size={20} />
-                    </button>
-                    <button
-                      onClick={() => forceGraphRef.current?.resetView()}
-                      className="w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white transition-colors"
-                      aria-label="Сбросить вид"
-                    >
-                      <Icon name="Home" size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Чат */}
-                <div className={`fixed inset-0 bg-background transition-transform duration-300 z-40 pt-16 ${
-                  mobileView === 'chat' ? 'translate-x-0' : 'translate-x-full'
-                }`}>
-                  <AIAssistant
-                    entrepreneurs={filteredEntrepreneurs}
-                    onSelectUsers={handleAISelectUsers}
-                    isVisible={mobileView === 'chat'}
-                    onClose={() => setMobileView('map')}
-                    onShowMap={() => setMobileView('map')}
-                  />
-                </div>
-              </>
             )}
           </div>
         </>
