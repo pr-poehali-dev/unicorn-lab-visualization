@@ -58,17 +58,18 @@ export function useMouseHandlers({
   }, [getNodeAtPosition, setDraggedNode, panRef, zoomRef, simulationRef]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    // Убираем throttling для плавного 60 FPS
-
     if (isPanning.current && panStartPos.current) {
       const deltaX = e.clientX - panStartPos.current.x;
       const deltaY = e.clientY - panStartPos.current.y;
       
-      // Обновляем pan напрямую для мгновенного отклика
-      setPan(prev => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY
-      }));
+      // Обновляем panRef напрямую для мгновенного отклика
+      panRef.current = {
+        x: panRef.current.x + deltaX,
+        y: panRef.current.y + deltaY
+      };
+      
+      // Синхронизируем со стейтом
+      setPan({ ...panRef.current });
       
       // Обновляем startPos для следующего движения
       panStartPos.current = { x: e.clientX, y: e.clientY };
@@ -254,11 +255,14 @@ export function useMouseHandlers({
       const deltaX = touch.clientX - panStartPos.current.x;
       const deltaY = touch.clientY - panStartPos.current.y;
       
-      // Обновляем pan напрямую для мгновенного отклика
-      setPan(prev => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY
-      }));
+      // Обновляем panRef напрямую для мгновенного отклика
+      panRef.current = {
+        x: panRef.current.x + deltaX,
+        y: panRef.current.y + deltaY
+      };
+      
+      // Синхронизируем со стейтом
+      setPan({ ...panRef.current });
       
       // Обновляем startPos для следующего движения
       panStartPos.current = { x: touch.clientX, y: touch.clientY };
