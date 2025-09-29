@@ -295,6 +295,13 @@ const Index: React.FC = () => {
       setSelectedCluster('Все');
       setSelectedTags([]);
       setIsTransitioning(false);
+      
+      // На мобильных устройствах центрируем граф после фильтрации
+      if (isMobile && forceGraphRef.current) {
+        setTimeout(() => {
+          forceGraphRef.current?.fitView();
+        }, 500); // Даем время на обновление графа
+      }
     }, 150);
   };
 

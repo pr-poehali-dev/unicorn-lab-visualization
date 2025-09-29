@@ -187,14 +187,78 @@ const ForceGraph = React.forwardRef<ForceGraphRef, ForceGraphProps>(({
     requestAnimationFrame(animate);
   }, [dimensions, zoomRef, setPan, drawGraph]);
 
+  // Подгонка вида под все видимые ноды
+  const fitView = useCallback(() => {
+    if (!canvasRef.current || nodesRef.current.length === 0) return;
+    
+    const nodes = nodesRef.current;
+    const padding = 50; // Отступ от краев
+    
+    // Находим границы всех нод
+    const bounds = {
+      minX: Math.min(...nodes.map(n => n.x)),
+      maxX: Math.max(...nodes.map(n => n.x)),
+      minY: Math.min(...nodes.map(n => n.y)),
+      maxY: Math.max(...nodes.map(n => n.y))
+    };
+    
+    const width = bounds.maxX - bounds.minX;
+    const height = bounds.maxY - bounds.minY;
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerY = (bounds.minY + bounds.maxY) / 2;
+    
+    // Вычисляем необходимый зум
+    const scaleX = (dimensions.width - 2 * padding) / width;
+    const scaleY = (dimensions.height - 2 * padding) / height;
+    const targetZoom = Math.min(Math.max(0.1, Math.min(scaleX, scaleY)), 2);
+    
+    // Вычисляем новую позицию pan для центрирования
+    const newPan = {
+      x: dimensions.width / 2 - centerX * targetZoom,
+      y: dimensions.height / 2 - centerY * targetZoom
+    };
+    
+    // Плавная анимация
+    const startPan = { ...panRef.current };
+    const startZoom = zoomRef.current;
+    const duration = 500; // ms
+    const startTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function для плавности
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      
+      panRef.current = {
+        x: startPan.x + (newPan.x - startPan.x) * easeProgress,
+        y: startPan.y + (newPan.y - startPan.y) * easeProgress
+      };
+      
+      zoomRef.current = startZoom + (targetZoom - startZoom) * easeProgress;
+      
+      setPan({ ...panRef.current });
+      setZoom(zoomRef.current);
+      drawGraph();
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [dimensions, setPan, setZoom, drawGraph]);
+
   React.useImperativeHandle(ref, () => ({
     resetNodePositions,
     zoomIn,
     zoomOut,
     resetView,
     getNodeById,
-    centerNode
-  }), [resetNodePositions, zoomIn, zoomOut, resetView, getNodeById, centerNode]);
+    centerNode,
+    fitView
+  }), [resetNodePositions, zoomIn, zoomOut, resetView, getNodeById, centerNode, fitView]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative">

@@ -34,4 +34,5 @@ export interface ForceGraphRef {
   resetView: () => void;
   getNodeById: (nodeId: string) => SimulationNode | undefined;
   centerNode: (node: SimulationNode, offsetY?: number) => void;
+  fitView: () => void;
 }
