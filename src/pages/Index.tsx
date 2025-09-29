@@ -17,7 +17,7 @@ const Index: React.FC = () => {
   const forceGraphRef = useRef<any>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const isMobile = useIsMobile();
-  const [mobileView, setMobileView] = useState<'map' | 'chat'>('map');
+  const [mobileView, setMobileView] = useState<'map' | 'chat'>('chat');
 
   const [selectedCluster, setSelectedCluster] = useState('Все');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -320,16 +320,6 @@ const Index: React.FC = () => {
               <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30">
                 <div className="bg-background/90 backdrop-blur border rounded-full p-1 flex gap-1">
                   <button
-                    onClick={() => setMobileView('map')}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      mobileView === 'map'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    КАРТА
-                  </button>
-                  <button
                     onClick={() => setMobileView('chat')}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                       mobileView === 'chat'
@@ -338,6 +328,16 @@ const Index: React.FC = () => {
                     }`}
                   >
                     ЧАТ
+                  </button>
+                  <button
+                    onClick={() => setMobileView('map')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      mobileView === 'map'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    КАРТА
                   </button>
                 </div>
               </div>
@@ -432,10 +432,7 @@ const Index: React.FC = () => {
                 }`}>
                   <AIAssistant
                     entrepreneurs={filteredEntrepreneurs}
-                    onSelectUsers={(userIds) => {
-                      handleAISelectUsers(userIds);
-                      setMobileView('map'); // Переключаемся на карту после выбора
-                    }}
+                    onSelectUsers={handleAISelectUsers}
                     isVisible={mobileView === 'chat'}
                     onClose={() => setMobileView('map')}
                   />

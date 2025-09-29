@@ -191,20 +191,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Mobile header with close button */}
-      {isMobile && onClose && (
-        <div className="flex items-center justify-between p-4 border-b relative z-50">
-          <h3 className="font-semibold text-lg">ИИ Ассистент</h3>
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-          >
-            <Icon name="X" size={20} />
-          </Button>
-        </div>
-      )}
+
       
       {/* Messages */}
       {messages.length === 0 ? (
@@ -285,11 +272,12 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
               onKeyDown={handleKeyDown}
               placeholder="Отправьте сообщение..."
               disabled={isLoading}
-              className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-20 text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 translate-y-[1px]"
+              className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-20 text-[16px] md:text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 translate-y-[1px]"
               rows={1}
               style={{
                 minHeight: '52px',
-                maxHeight: '200px'
+                maxHeight: '200px',
+                fontSize: '16px' // Prevents zoom on iOS
               }}
             />
             {messages.length > 0 && (
