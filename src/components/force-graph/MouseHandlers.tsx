@@ -35,9 +35,12 @@ export function useMouseHandlers({
   const mousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isPanning = useRef(false);
   const panStartPos = useRef<{ x: number; y: number } | null>(null);
+  const canvasRectRef = useRef<DOMRect | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
+    canvasRectRef.current = rect;
+    
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
@@ -174,6 +177,171 @@ export function useMouseHandlers({
     };
   }, []);
 
+  // Глобальные обработчики для предотвращения зависания драга
+  useEffect(() => {
+    if (!isPanning.current && !draggedNode) return;
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isPanning.current && panStartPos.current) {
+        const deltaX = e.clientX - panStartPos.current.x;
+        const deltaY = e.clientY - panStartPos.current.y;
+        
+        panRef.current = {
+          x: panRef.current.x + deltaX,
+          y: panRef.current.y + deltaY
+        };
+        
+        setPan({ ...panRef.current });
+        panStartPos.current = { x: e.clientX, y: e.clientY };
+        return;
+      }
+      
+      if (draggedNode && canvasRectRef.current) {
+        const rect = canvasRectRef.current;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const transformedX = (x - panRef.current.x) / zoomRef.current;
+        const transformedY = (y - panRef.current.y) / zoomRef.current;
+        
+        draggedNode.x = transformedX;
+        draggedNode.y = transformedY;
+        draggedNode.fx = transformedX;
+        draggedNode.fy = transformedY;
+        simulationRef.current?.alpha(0.3).restart();
+      }
+    };
+
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      if (isPanning.current) {
+        isPanning.current = false;
+        panStartPos.current = null;
+        return;
+      }
+      
+      if (draggedNode && dragStartPosRef.current && canvasRectRef.current) {
+        const rect = canvasRectRef.current;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const distance = Math.sqrt(
+          Math.pow(dragStartPosRef.current.x - x, 2) + 
+          Math.pow(dragStartPosRef.current.y - y, 2)
+        );
+        
+        if (distance < 5) {
+          const globalX = rect.left + draggedNode.x * zoomRef.current + panRef.current.x;
+          const globalY = rect.top + draggedNode.y * zoomRef.current + panRef.current.y;
+          onNodeClick(draggedNode.data, { x: globalX, y: globalY });
+        } else {
+          nodePositionsRef.current.set(draggedNode.id, { 
+            x: draggedNode.x, 
+            y: draggedNode.y,
+            fx: draggedNode.fx,
+            fy: draggedNode.fy
+          });
+        }
+
+        setDraggedNode(null);
+        dragStartPosRef.current = null;
+        simulationRef.current?.alphaTarget(0).restart();
+      }
+    };
+
+    document.addEventListener('mousemove', handleGlobalMouseMove);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode]);
+
+  // Глобальные touch обработчики для предотвращения зависания на мобильных
+  useEffect(() => {
+    if (!isPanning.current && !draggedNode) return;
+
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      
+      const touch = e.touches[0];
+      
+      if (isPanning.current && panStartPos.current) {
+        const deltaX = touch.clientX - panStartPos.current.x;
+        const deltaY = touch.clientY - panStartPos.current.y;
+        
+        panRef.current = {
+          x: panRef.current.x + deltaX,
+          y: panRef.current.y + deltaY
+        };
+        
+        setPan({ ...panRef.current });
+        panStartPos.current = { x: touch.clientX, y: touch.clientY };
+        return;
+      }
+      
+      if (draggedNode && canvasRectRef.current) {
+        const rect = canvasRectRef.current;
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        const transformedX = (x - panRef.current.x) / zoomRef.current;
+        const transformedY = (y - panRef.current.y) / zoomRef.current;
+
+        draggedNode.x = transformedX;
+        draggedNode.y = transformedY;
+        draggedNode.fx = transformedX;
+        draggedNode.fy = transformedY;
+        simulationRef.current?.alpha(0.3).restart();
+      }
+    };
+
+    const handleGlobalTouchEnd = (e: TouchEvent) => {
+      if (isPanning.current) {
+        isPanning.current = false;
+        panStartPos.current = null;
+        return;
+      }
+      
+      if (draggedNode && dragStartPosRef.current && canvasRectRef.current) {
+        const rect = canvasRectRef.current;
+        const touch = e.changedTouches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        const distance = Math.sqrt(
+          Math.pow(dragStartPosRef.current.x - x, 2) + 
+          Math.pow(dragStartPosRef.current.y - y, 2)
+        );
+        
+        if (distance < 5) {
+          const globalX = rect.left + draggedNode.x * zoomRef.current + panRef.current.x;
+          const globalY = rect.top + draggedNode.y * zoomRef.current + panRef.current.y;
+          onNodeClick(draggedNode.data, { x: globalX, y: globalY });
+        } else {
+          nodePositionsRef.current.set(draggedNode.id, { 
+            x: draggedNode.x, 
+            y: draggedNode.y,
+            fx: draggedNode.fx,
+            fy: draggedNode.fy
+          });
+        }
+
+        setDraggedNode(null);
+        dragStartPosRef.current = null;
+        simulationRef.current?.alphaTarget(0).restart();
+      }
+    };
+
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+    document.addEventListener('touchend', handleGlobalTouchEnd);
+
+    return () => {
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
+    };
+  }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode]);
+
   // Проверка hover состояния
   useEffect(() => {
     let rafId: number;
@@ -223,6 +391,8 @@ export function useMouseHandlers({
     
     const touch = e.touches[0];
     const rect = e.currentTarget.getBoundingClientRect();
+    canvasRectRef.current = rect;
+    
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     
