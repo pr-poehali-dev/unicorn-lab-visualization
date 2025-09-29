@@ -43,11 +43,21 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       handleWheel(syntheticEvent);
     };
 
-    // Добавляем обработчик с { passive: false } для предотвращения ошибок
+    // Touch move handler для предотвращения закрытия Telegram Mini App
+    const touchMoveHandler = (e: TouchEvent) => {
+      // Предотвращаем стандартное поведение только если есть активное касание
+      if (e.touches.length > 0) {
+        e.preventDefault();
+      }
+    };
+
+    // Добавляем обработчики с { passive: false }
     element.addEventListener('wheel', wheelHandler, { passive: false });
+    element.addEventListener('touchmove', touchMoveHandler, { passive: false });
 
     return () => {
       element.removeEventListener('wheel', wheelHandler);
+      element.removeEventListener('touchmove', touchMoveHandler);
     };
   }, [handleWheel]);
 

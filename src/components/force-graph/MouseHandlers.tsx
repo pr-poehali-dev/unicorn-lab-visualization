@@ -260,6 +260,10 @@ export function useMouseHandlers({
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length !== 1) return;
     
+    // Prevent default to stop Telegram Mini App from closing on swipe down
+    e.preventDefault();
+    e.stopPropagation();
+    
     const touch = e.touches[0];
     
     if (isPanning.current) {

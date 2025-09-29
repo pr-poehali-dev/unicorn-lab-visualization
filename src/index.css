@@ -53,6 +53,12 @@
     --sidebar-ring: 17 87% 54%;
   }
 
+  body {
+    overscroll-behavior: none;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .dark {
     --background: 0 0% 7%;
     --foreground: 0 0% 95%;

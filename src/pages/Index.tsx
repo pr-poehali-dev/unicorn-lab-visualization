@@ -412,9 +412,12 @@ const Index: React.FC = () => {
             {isMobile && (
               <>
                 {/* Карта */}
-                <div className={`absolute inset-0 transition-opacity duration-300 ${
-                  mobileView === 'map' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                }`}>
+                <div 
+                  className={`absolute inset-0 transition-opacity duration-300 ${
+                    mobileView === 'map' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                  }`}
+                  onTouchMove={(e) => e.preventDefault()}
+                >
                   <ForceGraph
                     key={`mobile-${selectedCluster}-${selectedTags.join(',')}`}
                     ref={forceGraphRef}
@@ -424,6 +427,31 @@ const Index: React.FC = () => {
                     selectedCluster={selectedCluster === 'Все' ? null : selectedCluster}
                     clusterColors={tagsConfig?.clusterColors || {}}
                   />
+                  
+                  {/* Zoom controls for mobile */}
+                  <div className="absolute bottom-20 right-4 flex flex-col gap-2">
+                    <button
+                      onClick={() => forceGraphRef.current?.zoomIn()}
+                      className="w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+                      aria-label="Увеличить"
+                    >
+                      <Icon name="Plus" size={20} />
+                    </button>
+                    <button
+                      onClick={() => forceGraphRef.current?.zoomOut()}
+                      className="w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+                      aria-label="Уменьшить"
+                    >
+                      <Icon name="Minus" size={20} />
+                    </button>
+                    <button
+                      onClick={() => forceGraphRef.current?.resetView()}
+                      className="w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+                      aria-label="Сбросить вид"
+                    >
+                      <Icon name="Home" size={20} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Чат */}
