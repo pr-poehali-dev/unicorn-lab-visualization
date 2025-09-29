@@ -37,6 +37,12 @@ export function useMouseHandlers({
   const panStartPos = useRef<{ x: number; y: number } | null>(null);
   const canvasRectRef = useRef<DOMRect | null>(null);
   const rafIdRef = useRef<number | null>(null);
+  const draggedNodeRef = useRef<SimulationNode | null>(null);
+  
+  // Синхронизируем ref с state
+  useEffect(() => {
+    draggedNodeRef.current = draggedNode;
+  }, [draggedNode]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -180,8 +186,6 @@ export function useMouseHandlers({
 
   // Глобальные обработчики для предотвращения зависания драга
   useEffect(() => {
-    if (!isPanning.current && !draggedNode) return;
-
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (isPanning.current && panStartPos.current) {
         const deltaX = e.clientX - panStartPos.current.x;
@@ -205,7 +209,8 @@ export function useMouseHandlers({
         return;
       }
       
-      if (draggedNode && canvasRectRef.current) {
+      const currentDraggedNode = draggedNodeRef.current;
+      if (currentDraggedNode && canvasRectRef.current) {
         const rect = canvasRectRef.current;
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -213,10 +218,10 @@ export function useMouseHandlers({
         const transformedX = (x - panRef.current.x) / zoomRef.current;
         const transformedY = (y - panRef.current.y) / zoomRef.current;
         
-        draggedNode.x = transformedX;
-        draggedNode.y = transformedY;
-        draggedNode.fx = transformedX;
-        draggedNode.fy = transformedY;
+        currentDraggedNode.x = transformedX;
+        currentDraggedNode.y = transformedY;
+        currentDraggedNode.fx = transformedX;
+        currentDraggedNode.fy = transformedY;
         simulationRef.current?.alpha(0.3).restart();
         
         // Throttle через RAF для 60 FPS
@@ -236,7 +241,8 @@ export function useMouseHandlers({
         return;
       }
       
-      if (draggedNode && dragStartPosRef.current && canvasRectRef.current) {
+      const currentDraggedNode = draggedNodeRef.current;
+      if (currentDraggedNode && dragStartPosRef.current && canvasRectRef.current) {
         const rect = canvasRectRef.current;
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -247,15 +253,15 @@ export function useMouseHandlers({
         );
         
         if (distance < 5) {
-          const globalX = rect.left + draggedNode.x * zoomRef.current + panRef.current.x;
-          const globalY = rect.top + draggedNode.y * zoomRef.current + panRef.current.y;
-          onNodeClick(draggedNode.data, { x: globalX, y: globalY });
+          const globalX = rect.left + currentDraggedNode.x * zoomRef.current + panRef.current.x;
+          const globalY = rect.top + currentDraggedNode.y * zoomRef.current + panRef.current.y;
+          onNodeClick(currentDraggedNode.data, { x: globalX, y: globalY });
         } else {
-          nodePositionsRef.current.set(draggedNode.id, { 
-            x: draggedNode.x, 
-            y: draggedNode.y,
-            fx: draggedNode.fx,
-            fy: draggedNode.fy
+          nodePositionsRef.current.set(currentDraggedNode.id, { 
+            x: currentDraggedNode.x, 
+            y: currentDraggedNode.y,
+            fx: currentDraggedNode.fx,
+            fy: currentDraggedNode.fy
           });
         }
 
@@ -276,12 +282,10 @@ export function useMouseHandlers({
         rafIdRef.current = null;
       }
     };
-  }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode, drawGraph]);
+  }, [panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode, drawGraph]);
 
   // Глобальные touch обработчики для предотвращения зависания на мобильных
   useEffect(() => {
-    if (!isPanning.current && !draggedNode) return;
-
     const handleGlobalTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
       
@@ -309,7 +313,8 @@ export function useMouseHandlers({
         return;
       }
       
-      if (draggedNode && canvasRectRef.current) {
+      const currentDraggedNode = draggedNodeRef.current;
+      if (currentDraggedNode && canvasRectRef.current) {
         const rect = canvasRectRef.current;
         const x = touch.clientX - rect.left;
         const y = touch.clientY - rect.top;
@@ -317,10 +322,10 @@ export function useMouseHandlers({
         const transformedX = (x - panRef.current.x) / zoomRef.current;
         const transformedY = (y - panRef.current.y) / zoomRef.current;
 
-        draggedNode.x = transformedX;
-        draggedNode.y = transformedY;
-        draggedNode.fx = transformedX;
-        draggedNode.fy = transformedY;
+        currentDraggedNode.x = transformedX;
+        currentDraggedNode.y = transformedY;
+        currentDraggedNode.fx = transformedX;
+        currentDraggedNode.fy = transformedY;
         simulationRef.current?.alpha(0.3).restart();
         
         // Throttle через RAF для 60 FPS
@@ -340,7 +345,8 @@ export function useMouseHandlers({
         return;
       }
       
-      if (draggedNode && dragStartPosRef.current && canvasRectRef.current) {
+      const currentDraggedNode = draggedNodeRef.current;
+      if (currentDraggedNode && dragStartPosRef.current && canvasRectRef.current) {
         const rect = canvasRectRef.current;
         const touch = e.changedTouches[0];
         const x = touch.clientX - rect.left;
@@ -352,15 +358,15 @@ export function useMouseHandlers({
         );
         
         if (distance < 5) {
-          const globalX = rect.left + draggedNode.x * zoomRef.current + panRef.current.x;
-          const globalY = rect.top + draggedNode.y * zoomRef.current + panRef.current.y;
-          onNodeClick(draggedNode.data, { x: globalX, y: globalY });
+          const globalX = rect.left + currentDraggedNode.x * zoomRef.current + panRef.current.x;
+          const globalY = rect.top + currentDraggedNode.y * zoomRef.current + panRef.current.y;
+          onNodeClick(currentDraggedNode.data, { x: globalX, y: globalY });
         } else {
-          nodePositionsRef.current.set(draggedNode.id, { 
-            x: draggedNode.x, 
-            y: draggedNode.y,
-            fx: draggedNode.fx,
-            fy: draggedNode.fy
+          nodePositionsRef.current.set(currentDraggedNode.id, { 
+            x: currentDraggedNode.x, 
+            y: currentDraggedNode.y,
+            fx: currentDraggedNode.fx,
+            fy: currentDraggedNode.fy
           });
         }
 
@@ -381,7 +387,7 @@ export function useMouseHandlers({
         rafIdRef.current = null;
       }
     };
-  }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode, drawGraph]);
+  }, [panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode, drawGraph]);
 
   // Проверка hover состояния
   useEffect(() => {
