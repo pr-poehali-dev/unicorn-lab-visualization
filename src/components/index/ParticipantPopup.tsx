@@ -36,7 +36,7 @@ const ParticipantPopup: React.FC<ParticipantPopupProps> = ({
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-lg md:text-lg text-xl">{participant.name}</h3>
+            <h3 className="font-semibold text-lg">{participant.name}</h3>
             {/* Кластер справа от имени */}
             <div className="flex items-center gap-1.5">
               <div 
