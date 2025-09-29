@@ -28,12 +28,20 @@ interface AIAssistantProps {
   onClose?: () => void;
 }
 
+const loadingTexts = [
+  'Думаю...',
+  'Изучаю базу данных...',
+  'Подождите одну минуту...',
+  'Формирую ответ...'
+];
+
 const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers, isVisible, onClose }) => {
   const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [loadingTextIndex, setLoadingTextIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -56,6 +64,19 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
       localStorage.setItem('ai-assistant-messages', JSON.stringify(messages.slice(-20)));
     }
   }, [messages]);
+
+  // Animate loading text
+  useEffect(() => {
+    if (isLoading) {
+      const interval = setInterval(() => {
+        setLoadingTextIndex((prev) => (prev + 1) % loadingTexts.length);
+      }, 2000); // Change text every 2 seconds
+      
+      return () => clearInterval(interval);
+    } else {
+      setLoadingTextIndex(0); // Reset to first text when not loading
+    }
+  }, [isLoading]);
 
   // Scroll to bottom function with smooth animation
   const scrollToBottom = (smooth = true) => {
@@ -232,7 +253,22 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
             <div className="w-full">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Icon name="Loader2" size={16} className="animate-spin" />
-                <span className="text-sm">Думаю...</span>
+                <div className="relative h-5 overflow-hidden">
+                  {loadingTexts.map((text, index) => (
+                    <span
+                      key={text}
+                      className={`text-sm absolute left-0 transition-all duration-500 ${
+                        index === loadingTextIndex
+                          ? 'opacity-100 translate-y-0'
+                          : index < loadingTextIndex
+                          ? 'opacity-0 -translate-y-full'
+                          : 'opacity-0 translate-y-full'
+                      }`}
+                    >
+                      {text}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
             )}
