@@ -206,19 +206,23 @@ const Index: React.FC = () => {
   };
 
   const handleNodeClick = (entrepreneur: Entrepreneur, position: { x: number; y: number }) => {
-    setSelectedParticipant(entrepreneur);
-    setPopupPosition(position);
-    
-    // На мобильных устройствах центрируем выбранную ноду
+    // На мобильных устройствах сначала центрируем, потом открываем попап
     if (isMobile && forceGraphRef.current) {
-      // Задержка чтобы дать время на отрисовку карточки
-      setTimeout(() => {
-        const node = forceGraphRef.current?.getNodeById?.(entrepreneur.id);
-        if (node) {
-          // Высота карточки примерно 200px, смещаем на 150px вверх от центра
-          forceGraphRef.current?.centerNode?.(node, 150);
-        }
-      }, 50);
+      const node = forceGraphRef.current?.getNodeById?.(entrepreneur.id);
+      if (node) {
+        // Сначала центрируем ноду, поднимаем выше (250px вверх от центра)
+        forceGraphRef.current?.centerNode?.(node, 250);
+        
+        // Задержка перед открытием попапа, чтобы успела отцентрироваться
+        setTimeout(() => {
+          setSelectedParticipant(entrepreneur);
+          setPopupPosition(position);
+        }, 300); // 300мс задержка для плавности
+      }
+    } else {
+      // На десктопе открываем сразу
+      setSelectedParticipant(entrepreneur);
+      setPopupPosition(position);
     }
   };
 
