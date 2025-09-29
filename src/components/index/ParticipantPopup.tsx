@@ -23,7 +23,7 @@ const ParticipantPopup: React.FC<ParticipantPopupProps> = ({
   return (
     <div
       ref={popupRef}
-      className="fixed z-50 bg-background border rounded-lg shadow-xl p-4 max-w-sm popup-fade-in"
+      className="fixed z-50 bg-background border rounded-lg shadow-xl p-4 md:p-4 p-5 max-w-sm md:max-w-sm w-[calc(100vw-2rem)] sm:w-auto popup-fade-in"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
@@ -36,7 +36,7 @@ const ParticipantPopup: React.FC<ParticipantPopupProps> = ({
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-lg">{participant.name}</h3>
+            <h3 className="font-semibold text-lg md:text-lg text-xl">{participant.name}</h3>
             {/* Кластер справа от имени */}
             <div className="flex items-center gap-1.5">
               <div 
@@ -52,7 +52,7 @@ const ParticipantPopup: React.FC<ParticipantPopupProps> = ({
                 <Icon name="Target" size={16} className="text-primary" />
                 <p className="text-sm font-medium text-primary">Цель:</p>
               </div>
-              <p className="text-sm mt-1">{participant.goal}</p>
+              <p className="text-sm md:text-sm text-base mt-1">{participant.goal}</p>
             </div>
           )}
         </div>
@@ -68,7 +68,7 @@ const ParticipantPopup: React.FC<ParticipantPopupProps> = ({
       
       {/* Описание */}
       {participant.description && (
-        <p className="text-sm text-muted-foreground mb-3">
+        <p className="text-sm md:text-sm text-base text-muted-foreground mb-3">
           {participant.description}
         </p>
       )}
