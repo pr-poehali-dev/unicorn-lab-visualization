@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import ForceGraph from '@/components/ForceGraph';
-import { ForceGraphRef } from '@/components/force-graph/types';
+import { ForceGraphRef, SimulationNode } from '@/components/force-graph/types';
 import FilterControls from '@/components/index/FilterControls';
 import GraphStats from '@/components/index/GraphStats';
 import GraphControls from '@/components/index/GraphControls';
@@ -299,7 +299,27 @@ const Index: React.FC = () => {
       // На мобильных устройствах центрируем граф после фильтрации
       if (isMobile && forceGraphRef.current) {
         setTimeout(() => {
-          forceGraphRef.current?.fitView();
+          // Находим центр масс выбранных участников
+          const selectedNodes = userIds
+            .map(id => forceGraphRef.current?.getNodeById(id))
+            .filter(node => node !== undefined);
+          
+          if (selectedNodes.length > 0) {
+            // Вычисляем центр масс
+            const centerX = selectedNodes.reduce((sum, node) => sum + node!.x, 0) / selectedNodes.length;
+            const centerY = selectedNodes.reduce((sum, node) => sum + node!.y, 0) / selectedNodes.length;
+            
+            // Создаем виртуальную ноду в центре масс
+            const centerNode = {
+              id: 'center',
+              x: centerX,
+              y: centerY,
+              data: {} as any
+            } as SimulationNode;
+            
+            // Центрируем на эту виртуальную ноду (с небольшим смещением вверх)
+            forceGraphRef.current?.centerNode(centerNode, 100);
+          }
         }, 500); // Даем время на обновление графа
       }
     }, 150);
