@@ -132,6 +132,11 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
     const userMessage = input.trim();
     setInput('');
     
+    // Закрываем клавиатуру на мобильных после отправки
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+    
     // Add user message
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
@@ -189,8 +194,19 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
     }
   };
 
+  const handleContainerClick = (e: React.MouseEvent) => {
+    // Проверяем, что клик был не по textarea и не по кнопкам
+    const target = e.target as HTMLElement;
+    if (!target.closest('textarea') && !target.closest('button')) {
+      // Закрываем клавиатуру
+      if (inputRef.current) {
+        inputRef.current.blur();
+      }
+    }
+  };
+
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background" onClick={handleContainerClick}>
 
       
       {/* Messages */}

@@ -485,13 +485,7 @@ const Index: React.FC = () => {
                 }`}>
                   <AIAssistant
                     entrepreneurs={filteredEntrepreneurs}
-                    onSelectUsers={(userIds) => {
-                      handleAISelectUsers(userIds);
-                      // На мобильном переключаемся на карту при выборе участников
-                      if (isMobile) {
-                        setMobileView('map');
-                      }
-                    }}
+                    onSelectUsers={handleAISelectUsers}
                     isVisible={mobileView === 'chat'}
                     onClose={() => setMobileView('map')}
                   />
