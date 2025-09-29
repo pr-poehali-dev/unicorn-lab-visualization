@@ -239,14 +239,8 @@ export class GraphRenderer {
   static draw(props: GraphRendererProps & { zoom: number; pan: { x: number; y: number } }) {
     const { ctx, dimensions, simNodes, selectedCluster, hoveredNode, draggedNode, clusterColors, zoom, pan } = props;
 
-    // Считаем FPS для отладки
-    const currentTime = performance.now();
-    if (currentTime - this.lastFrameTime > 1000) {
-      console.log(`FPS: ${this.frameCount}, Nodes: ${simNodes.length}`);
-      this.frameCount = 0;
-      this.lastFrameTime = currentTime;
-    }
-    this.frameCount++;
+    // Удаляем отладку FPS для лучшей производительности
+    // При необходимости можно включить через DevTools
 
     // Сохраняем контекст для трансформаций
     ctx.save();
@@ -264,9 +258,9 @@ export class GraphRenderer {
       this.drawGrid(ctx, dimensions);
     }
 
-    // Оптимизированная отрисовка связей для Safari
-    if (this.isSafari && simNodes.length > 100) {
-      // Для больших графов в Safari рисуем только основные связи
+    // Оптимизированная отрисовка связей
+    if (simNodes.length > 100) {
+      // Для больших графов используем оптимизированную версию
       this.drawEdgesOptimized(props);
     } else {
       this.drawEdges(props);
@@ -277,43 +271,44 @@ export class GraphRenderer {
       ? simNodes.filter(n => n.data.cluster === selectedCluster)
       : simNodes;
 
-    // Определяем упрощенный рендер для Safari
-    const simplifiedRender = this.isSafari && simNodes.length > 50;
+    // Определяем упрощенный рендер для больших графов
+    const simplifiedRender = simNodes.length > 100;
 
-    // Оптимизация для Safari: пропускаем невидимые ноды
-    if (this.isSafari) {
-      const viewBounds = {
-        left: -pan.x / zoom,
-        right: (dimensions.width - pan.x) / zoom,
-        top: -pan.y / zoom,
-        bottom: (dimensions.height - pan.y) / zoom
-      };
+    // Viewport culling для всех браузеров при больших графах
+    const viewBounds = simNodes.length > 100 ? {
+      left: -pan.x / zoom - 100,
+      right: (dimensions.width - pan.x) / zoom + 100,
+      top: -pan.y / zoom - 100,
+      bottom: (dimensions.height - pan.y) / zoom + 100
+    } : null;
 
-      visibleNodes.forEach(node => {
-        // Проверяем, видна ли нода
-        if (node.x < viewBounds.left - 50 || node.x > viewBounds.right + 50 ||
-            node.y < viewBounds.top - 50 || node.y > viewBounds.bottom + 50) {
-          return; // Пропускаем невидимые ноды
-        }
+    // Рисуем ноды
+    visibleNodes.forEach(node => {
+      // Пропускаем невидимые ноды для больших графов
+      if (viewBounds && (
+        node.x < viewBounds.left || node.x > viewBounds.right ||
+        node.y < viewBounds.top || node.y > viewBounds.bottom
+      )) {
+        return;
+      }
 
+      // Используем оптимизированный рендеринг для больших графов
+      if (simNodes.length > 100) {
         this.drawNodeOptimized(ctx, node, {
           isHovered: node.id === hoveredNode,
           isDragged: draggedNode?.id === node.id,
           clusterColors,
           simplifiedRender
         });
-      });
-    } else {
-      // Стандартный рендеринг для других браузеров
-      visibleNodes.forEach(node => {
+      } else {
         this.drawNode(ctx, node, {
           isHovered: node.id === hoveredNode,
           isDragged: draggedNode?.id === node.id,
           clusterColors,
           simplifiedRender
         });
-      });
-    }
+      }
+    });
 
     // Восстанавливаем контекст
     ctx.restore();
@@ -330,20 +325,19 @@ export class GraphRenderer {
     
     // Рисуем все линии одним path для максимальной производительности
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'; // Очень прозрачные линии
-    ctx.lineWidth = 0.5; // Тонкие линии
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; // Немного более видимые линии
+    ctx.lineWidth = 1; // Чуть толще для лучшей видимости
     
-    // Рисуем только каждую вторую связь для ускорения
-    for (let i = 0; i < simLinks.length; i += 2) {
-      const link = simLinks[i];
-      const sourceNode = typeof link.source === 'object' ? link.source : simNodes.find(n => n.id === link.source);
-      const targetNode = typeof link.target === 'object' ? link.target : simNodes.find(n => n.id === link.target);
+    // Рисуем все связи, но одним проходом
+    simLinks.forEach((link: any) => {
+      const sourceNode = link.source;
+      const targetNode = link.target;
       
       if (sourceNode && targetNode) {
         ctx.moveTo(sourceNode.x, sourceNode.y);
         ctx.lineTo(targetNode.x, targetNode.y);
       }
-    }
+    });
     
     ctx.stroke();
   }
@@ -357,30 +351,38 @@ export class GraphRenderer {
   }) {
     const { isHovered, isDragged, clusterColors } = props;
     const nodeSize = 40;
+    const color = clusterColors[node.data.cluster] || '#ea580c';
 
-    // Пропускаем все эффекты в Safari для производительности
     if (!isHovered && !isDragged) {
-      // Простой круг без градиентов и теней
-      const color = clusterColors[node.data.cluster] || '#ea580c';
+      // Супер оптимизированный рендеринг для обычных нод
+      
+      // Цветной круг-обводка
       ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, nodeSize + 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Темный круг внутри
+      ctx.fillStyle = '#1a1a1a';
       ctx.beginPath();
       ctx.arc(node.x, node.y, nodeSize, 0, Math.PI * 2);
       ctx.fill();
 
-      // Эмодзи
+      // Эмодзи - используем кеш браузера
+      ctx.fillStyle = '#ffffff';
       ctx.font = `${nodeSize * 0.7}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(node.data.emoji || '😊', node.x, node.y);
 
-      // Имя только если зум больше 0.5
-      if (ctx.getTransform().a > 0.5) {
-        ctx.fillStyle = '#ffffff';
+      // Имя рисуем только при приближении
+      const zoom = ctx.getTransform().a;
+      if (zoom > 0.6) {
         ctx.font = '12px Inter';
         ctx.fillText(node.data.name, node.x, node.y + nodeSize + 20);
       }
     } else {
-      // Для активных нод используем стандартный рендеринг
+      // Для hover/drag используем красивый рендеринг
       this.drawNode(ctx, node, props);
     }
   }

@@ -216,38 +216,29 @@ export function useSimulation({
     // Форсируем несколько тиков для инициализации позиций
     simulation.tick(10);
 
-    let lastDrawTime = 0;
-    const MIN_DRAW_INTERVAL = isSafari && nodes.length > 50 ? 33 : 16; // ~30 FPS для Safari с большими графами
+    const lastDrawTime = 0;
+    const TARGET_FPS = 60;
+    const MIN_DRAW_INTERVAL = 1000 / TARGET_FPS; // Всегда целимся в 60 FPS
 
     // Обновление позиций при каждом тике
     simulation.on('tick', () => {
       tickCounter.current++;
       
-      // Для Safari с большими графами обновляем позиции реже
-      const shouldUpdatePositions = !isSafari || nodes.length <= 50 || tickCounter.current % 2 === 0;
-      
-      if (shouldUpdatePositions) {
-        // Сохраняем текущие позиции узлов
-        simNodes.forEach(node => {
-          nodePositionsRef.current.set(node.id, { 
-            x: node.x, 
-            y: node.y,
-            fx: node.fx || null,
-            fy: node.fy || null
-          });
+      // Сохраняем позиции каждый тик для плавности
+      simNodes.forEach(node => {
+        nodePositionsRef.current.set(node.id, { 
+          x: node.x, 
+          y: node.y,
+          fx: node.fx || null,
+          fy: node.fy || null
         });
-      }
+      });
       
-      // Ограничиваем частоту перерисовки
-      const now = performance.now();
-      if (now - lastDrawTime < MIN_DRAW_INTERVAL) {
-        return; // Пропускаем этот кадр
-      }
-      lastDrawTime = now;
-      
+      // Используем requestAnimationFrame для 60 FPS
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      
       animationFrameRef.current = requestAnimationFrame(() => {
         onTickRef.current();
       });
