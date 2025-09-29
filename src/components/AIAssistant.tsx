@@ -189,7 +189,11 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
       {messages.length === 0 ? (
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center text-muted-foreground">
-            <Icon name="MessageCircleHeart" size={48} className="mx-auto mb-4 opacity-20" />
+            <img 
+              src="https://cdn.poehali.dev/files/169dac9a-0adb-4751-8718-cff6fc8621e3.png" 
+              alt="AI Assistant Logo" 
+              className="w-12 h-12 mx-auto mb-4 opacity-20 dark:invert"
+            />
             <p className="text-sm">Задайте вопрос об участниках сообщества</p>
             <p className="text-xs mt-2">Например: «Найди разработчиков для ИИ проекта»</p>
           </div>
