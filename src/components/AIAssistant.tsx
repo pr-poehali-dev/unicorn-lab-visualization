@@ -247,7 +247,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
               onKeyDown={handleKeyDown}
               placeholder="Отправьте сообщение..."
               disabled={isLoading}
-              className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-20 text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-20 text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 translate-y-[1px]"
               rows={1}
               style={{
                 minHeight: '52px',
