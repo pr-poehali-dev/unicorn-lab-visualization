@@ -265,14 +265,14 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
       <div className="border-t p-4">
         <div className="relative max-w-3xl mx-auto">
           <div className="relative flex items-end bg-[#2f2f2f] rounded-3xl">
-            <textarea className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-20 text-[16px] md:text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 "
+            <textarea
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Отправьте сообщение..."
               disabled={isLoading}
-              className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-20 text-[16px] md:text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 translate-y-[1px]"
+              className="w-full bg-transparent text-white placeholder:text-gray-400 resize-none px-5 py-3.5 pr-20 text-[16px] md:text-[15px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               rows={1}
               style={{
                 minHeight: '52px',
