@@ -1,5 +1,6 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import ForceGraph from '@/components/ForceGraph';
+import { ForceGraphRef } from '@/components/force-graph/types';
 import FilterControls from '@/components/index/FilterControls';
 import GraphStats from '@/components/index/GraphStats';
 import GraphControls from '@/components/index/GraphControls';
@@ -14,7 +15,7 @@ import { TagsService, TagsConfig } from '@/services/tagsService';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const Index: React.FC = () => {
-  const forceGraphRef = useRef<any>(null);
+  const forceGraphRef = useRef<ForceGraphRef>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const isMobile = useIsMobile();
   const [mobileView, setMobileView] = useState<'map' | 'chat'>('chat');
@@ -207,6 +208,18 @@ const Index: React.FC = () => {
   const handleNodeClick = (entrepreneur: Entrepreneur, position: { x: number; y: number }) => {
     setSelectedParticipant(entrepreneur);
     setPopupPosition(position);
+    
+    // На мобильных устройствах центрируем выбранную ноду
+    if (isMobile && forceGraphRef.current) {
+      // Задержка чтобы дать время на отрисовку карточки
+      setTimeout(() => {
+        const node = forceGraphRef.current?.getNodeById?.(entrepreneur.id);
+        if (node) {
+          // Высота карточки примерно 200px, смещаем на 150px вверх от центра
+          forceGraphRef.current?.centerNode?.(node, 150);
+        }
+      }, 50);
+    }
   };
 
   // Закрытие попапа участника при клике вне

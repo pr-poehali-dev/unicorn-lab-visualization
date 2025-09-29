@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
-import { ForceGraphProps } from './force-graph/types';
+import { ForceGraphProps, ForceGraphRef } from './force-graph/types';
 import { SimulationNode } from './force-graph/types';
 import { GraphRenderer } from './force-graph/GraphRenderer';
 import { useSimulation } from './force-graph/useSimulation';
@@ -9,7 +9,7 @@ import { useMouseHandlers } from './force-graph/MouseHandlers';
 import { useZoomHandlers } from './force-graph/ZoomHandlers';
 import { useNodeUtils } from './force-graph/NodeUtils';
 
-const ForceGraph = React.forwardRef<any, ForceGraphProps>(({ 
+const ForceGraph = React.forwardRef<ForceGraphRef, ForceGraphProps>(({ 
   nodes, 
   edges, 
   onNodeClick, 
@@ -139,12 +139,62 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     setPan
   });
 
+  // Получение ноды по ID
+  const getNodeById = useCallback((nodeId: string) => {
+    return nodesRef.current.find(node => node.id === nodeId);
+  }, []);
+
+  // Центрирование ноды с учетом смещения для карточки
+  const centerNode = useCallback((node: SimulationNode, offsetY: number = 0) => {
+    if (!node || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    // Используем dimensions вместо canvas.width/height для правильного масштаба
+    const centerX = dimensions.width / 2;
+    const centerY = (dimensions.height / 2) - offsetY; // Смещаем вверх для карточки
+    
+    // Рассчитываем новые координаты pan для центрирования ноды
+    const newPan = {
+      x: centerX - node.x * zoomRef.current,
+      y: centerY - node.y * zoomRef.current
+    };
+    
+    // Плавная анимация перемещения
+    const startPan = { ...panRef.current };
+    const duration = 500; // ms
+    const startTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function для плавности
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      
+      panRef.current = {
+        x: startPan.x + (newPan.x - startPan.x) * easeProgress,
+        y: startPan.y + (newPan.y - startPan.y) * easeProgress
+      };
+      
+      setPan({ ...panRef.current });
+      drawGraph();
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [dimensions, zoomRef, setPan, drawGraph]);
+
   React.useImperativeHandle(ref, () => ({
     resetNodePositions,
     zoomIn,
     zoomOut,
-    resetView
-  }), [resetNodePositions, zoomIn, zoomOut, resetView]);
+    resetView,
+    getNodeById,
+    centerNode
+  }), [resetNodePositions, zoomIn, zoomOut, resetView, getNodeById, centerNode]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative">

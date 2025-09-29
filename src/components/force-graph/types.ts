@@ -26,3 +26,12 @@ export interface NodePosition {
   fx: number | null;
   fy: number | null;
 }
+
+export interface ForceGraphRef {
+  resetNodePositions: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetView: () => void;
+  getNodeById: (nodeId: string) => SimulationNode | undefined;
+  centerNode: (node: SimulationNode, offsetY?: number) => void;
+}
