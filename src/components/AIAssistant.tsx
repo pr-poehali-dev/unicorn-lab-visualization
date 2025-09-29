@@ -253,16 +253,14 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
             <div className="w-full">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Icon name="Loader2" size={16} className="animate-spin" />
-                <div className="relative h-5 overflow-hidden">
+                <div className="relative min-w-[200px] h-5">
                   {loadingTexts.map((text, index) => (
                     <span
                       key={text}
-                      className={`text-sm absolute left-0 transition-all duration-500 ${
+                      className={`text-sm absolute left-0 top-0 whitespace-nowrap transition-all duration-500 ${
                         index === loadingTextIndex
-                          ? 'opacity-100 translate-y-0'
-                          : index < loadingTextIndex
-                          ? 'opacity-0 -translate-y-full'
-                          : 'opacity-0 translate-y-full'
+                          ? 'opacity-100'
+                          : 'opacity-0'
                       }`}
                     >
                       {text}
