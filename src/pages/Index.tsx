@@ -488,6 +488,7 @@ const Index: React.FC = () => {
                     onSelectUsers={handleAISelectUsers}
                     isVisible={mobileView === 'chat'}
                     onClose={() => setMobileView('map')}
+                    onShowMap={() => setMobileView('map')}
                   />
                 </div>
               </>

@@ -26,6 +26,7 @@ interface AIAssistantProps {
   onSelectUsers: (userIds: string[]) => void;
   isVisible?: boolean;
   onClose?: () => void;
+  onShowMap?: () => void;
 }
 
 const loadingTexts = [
@@ -35,7 +36,7 @@ const loadingTexts = [
   'Формирую ответ...'
 ];
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers, isVisible, onClose }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers, isVisible, onClose, onShowMap }) => {
   const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -240,7 +241,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
                   </p>
                   {message.related_users_ids && message.related_users_ids.length > 0 && (
                     <button
-                      onClick={() => onSelectUsers(message.related_users_ids!)}
+                      onClick={() => {
+                        onSelectUsers(message.related_users_ids!);
+                        // На мобильных переключаемся на карту
+                        if (isMobile && onShowMap) {
+                          onShowMap();
+                        }
+                      }}
                       className="mt-3 text-sm text-primary hover:text-primary/80 flex items-center gap-2 transition-colors"
                     >
                       <Icon name="Users" size={16} />
