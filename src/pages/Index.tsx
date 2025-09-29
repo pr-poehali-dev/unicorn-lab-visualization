@@ -215,8 +215,16 @@ const Index: React.FC = () => {
         
         // Задержка перед открытием попапа, чтобы успела отцентрироваться
         setTimeout(() => {
+          // Вычисляем новую позицию попапа после центрирования
+          const screenWidth = window.innerWidth;
+          const screenHeight = window.innerHeight;
+          const newPosition = {
+            x: screenWidth / 2,
+            y: (screenHeight / 2) - 250 // Та же высота, что и при центрировании
+          };
+          
           setSelectedParticipant(entrepreneur);
-          setPopupPosition(position);
+          setPopupPosition(newPosition);
         }, 300); // 300мс задержка для плавности
       }
     } else {
