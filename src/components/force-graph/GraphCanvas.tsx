@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface GraphCanvasProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -23,6 +23,28 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   handleMouseEnter,
   handleWheel
 }) => {
+  const interactionRef = useRef<HTMLDivElement>(null);
+
+  // Добавляем non-passive wheel listener для предотвращения проблем с passive listeners
+  useEffect(() => {
+    const element = interactionRef.current;
+    if (!element) return;
+
+    const wheelHandler = (e: WheelEvent) => {
+      e.preventDefault();
+      // Создаём синтетическое событие React
+      const syntheticEvent = e as unknown as React.WheelEvent;
+      handleWheel(syntheticEvent);
+    };
+
+    // Добавляем обработчик с { passive: false } для предотвращения ошибок
+    element.addEventListener('wheel', wheelHandler, { passive: false });
+
+    return () => {
+      element.removeEventListener('wheel', wheelHandler);
+    };
+  }, [handleWheel]);
+
   return (
     <>
       <canvas
@@ -38,6 +60,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         className="pointer-events-none"
       />
       <div
+        ref={interactionRef}
         style={{
           width: dimensions.width + 'px',
           height: dimensions.height + 'px',
@@ -54,7 +77,6 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         onMouseEnter={handleMouseEnter}
         onPointerMove={handleMouseMove}
         onPointerLeave={handleMouseLeave}
-        onWheel={handleWheel}
       />
     </>
   );

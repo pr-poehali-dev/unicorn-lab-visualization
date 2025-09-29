@@ -36,6 +36,8 @@ export function useMouseHandlers({
   const isPanning = useRef(false);
   const panStartPos = useRef<{ x: number; y: number } | null>(null);
   const panAnimationFrame = useRef<number | null>(null);
+  const lastMoveTime = useRef<number>(0);
+  const moveThrottle = 16; // ~60fps
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -59,6 +61,13 @@ export function useMouseHandlers({
   }, [getNodeAtPosition, setDraggedNode, panRef, zoomRef, simulationRef]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    // Throttle mousemove events for better performance in Safari
+    const now = performance.now();
+    if (now - lastMoveTime.current < moveThrottle) {
+      return;
+    }
+    lastMoveTime.current = now;
+
     if (isPanning.current) {
       panRef.current = {
         x: e.clientX - panStartPos.current!.x,

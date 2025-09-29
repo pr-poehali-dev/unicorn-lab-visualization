@@ -22,7 +22,10 @@ export function useCanvasResize({
         const newHeight = Math.floor(rect.height);
         
         // Получаем devicePixelRatio для HiDPI дисплеев
-        const dpr = window.devicePixelRatio || 1;
+        // Для Safari ограничиваем devicePixelRatio для лучшей производительности
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        const maxDpr = isSafari ? 2 : 3; // Ограничиваем DPR для Safari
+        const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
         
         // Устанавливаем физические размеры canvas с учетом DPR
         canvasRef.current.width = newWidth * dpr;
