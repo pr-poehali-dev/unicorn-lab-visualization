@@ -232,11 +232,122 @@ export function useMouseHandlers({
     };
   }, [hoveredNodeId, draggedNode, getNodeAtPosition, setHoveredNodeId, simulationRef]);
 
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return; // Only handle single touch
+    
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    const transformedX = (x - panRef.current.x) / zoomRef.current;
+    const transformedY = (y - panRef.current.y) / zoomRef.current;
+
+    const node = getNodeAtPosition(transformedX, transformedY);
+    if (node) {
+      setDraggedNode(node);
+      dragStartPosRef.current = { x, y };
+      node.fx = node.x;
+      node.fy = node.y;
+      simulationRef.current?.alpha(0.3).restart();
+    } else {
+      isPanning.current = true;
+      panStartPos.current = { x: touch.clientX - panRef.current.x, y: touch.clientY - panRef.current.y };
+    }
+  }, [getNodeAtPosition, setDraggedNode, panRef, zoomRef, simulationRef]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    
+    const touch = e.touches[0];
+    
+    if (isPanning.current) {
+      panRef.current = {
+        x: touch.clientX - panStartPos.current!.x,
+        y: touch.clientY - panStartPos.current!.y
+      };
+      
+      if (panAnimationFrame.current) {
+        cancelAnimationFrame(panAnimationFrame.current);
+      }
+      
+      drawGraph();
+      
+      panAnimationFrame.current = requestAnimationFrame(() => {
+        setPan({ ...panRef.current });
+      });
+      
+      return;
+    }
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    const transformedX = (x - panRef.current.x) / zoomRef.current;
+    const transformedY = (y - panRef.current.y) / zoomRef.current;
+
+    if (draggedNode) {
+      draggedNode.x = transformedX;
+      draggedNode.y = transformedY;
+      draggedNode.fx = transformedX;
+      draggedNode.fy = transformedY;
+      simulationRef.current?.alpha(0.3).restart();
+    }
+  }, [draggedNode, drawGraph, panRef, zoomRef, setPan, simulationRef]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (isPanning.current) {
+      isPanning.current = false;
+      panStartPos.current = null;
+      if (panAnimationFrame.current) {
+        cancelAnimationFrame(panAnimationFrame.current);
+        panAnimationFrame.current = null;
+      }
+      setPan({ ...panRef.current });
+      return;
+    }
+    
+    if (draggedNode && dragStartPosRef.current) {
+      // For touch, we'll consider it a click if the user didn't drag much
+      const rect = e.currentTarget.getBoundingClientRect();
+      const touch = e.changedTouches[0];
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      
+      const distance = Math.sqrt(
+        Math.pow(dragStartPosRef.current.x - x, 2) + 
+        Math.pow(dragStartPosRef.current.y - y, 2)
+      );
+      
+      if (distance < 5) {
+        const globalX = rect.left + draggedNode.x * zoomRef.current + panRef.current.x;
+        const globalY = rect.top + draggedNode.y * zoomRef.current + panRef.current.y;
+        onNodeClick(draggedNode.data, { x: globalX, y: globalY });
+      } else {
+        nodePositionsRef.current.set(draggedNode.id, { 
+          x: draggedNode.x, 
+          y: draggedNode.y,
+          fx: draggedNode.fx,
+          fy: draggedNode.fy
+        });
+      }
+
+      setDraggedNode(null);
+      dragStartPosRef.current = null;
+      simulationRef.current?.alphaTarget(0).restart();
+    }
+  }, [draggedNode, onNodeClick, panRef, zoomRef, setPan, setDraggedNode, nodePositionsRef, simulationRef]);
+
   return {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
-    handleMouseEnter
+    handleMouseEnter,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd
   };
 }

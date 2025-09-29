@@ -10,6 +10,9 @@ interface GraphCanvasProps {
   handleMouseLeave: (e: React.MouseEvent) => void;
   handleMouseEnter: (e: React.MouseEvent) => void;
   handleWheel: (e: React.WheelEvent) => void;
+  handleTouchStart?: (e: React.TouchEvent) => void;
+  handleTouchMove?: (e: React.TouchEvent) => void;
+  handleTouchEnd?: (e: React.TouchEvent) => void;
 }
 
 export const GraphCanvas: React.FC<GraphCanvasProps> = ({
@@ -21,7 +24,10 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   handleMouseUp,
   handleMouseLeave,
   handleMouseEnter,
-  handleWheel
+  handleWheel,
+  handleTouchStart,
+  handleTouchMove,
+  handleTouchEnd
 }) => {
   const interactionRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +75,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
           left: 0,
           cursor: hoveredNodeId ? 'pointer' : 'grab'
         }}
-        className="active:cursor-grabbing"
+        className="active:cursor-grabbing touch-none select-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -77,6 +83,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         onMouseEnter={handleMouseEnter}
         onPointerMove={handleMouseMove}
         onPointerLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       />
     </>
   );

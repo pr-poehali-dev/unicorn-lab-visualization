@@ -100,13 +100,16 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
     selectedCluster
   });
 
-  // Обработчики мыши
+  // Обработчики мыши и touch
   const {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
-    handleMouseEnter
+    handleMouseEnter,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd
   } = useMouseHandlers({
     getNodeAtPosition,
     onNodeClick,
@@ -155,6 +158,9 @@ const ForceGraph = React.forwardRef<any, ForceGraphProps>(({
         handleMouseLeave={handleMouseLeave}
         handleMouseEnter={handleMouseEnter}
         handleWheel={handleWheel}
+        handleTouchStart={handleTouchStart}
+        handleTouchMove={handleTouchMove}
+        handleTouchEnd={handleTouchEnd}
       />
     </div>
   );
