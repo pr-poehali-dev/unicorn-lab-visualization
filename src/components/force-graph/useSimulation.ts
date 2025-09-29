@@ -22,6 +22,8 @@ export function useSimulation({
   const nodesRef = useRef<SimulationNode[]>([]);
   const animationFrameRef = useRef<number | null>(null);
   const onTickRef = useRef(onTick);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const tickCounter = useRef(0);
   
   // Обновляем ref при изменении onTick
   useEffect(() => {
@@ -176,7 +178,7 @@ export function useSimulation({
     // Создаем копию edges для симуляции
     const simEdges = edges.map(e => ({ ...e }));
 
-    // Создание симуляции
+    // Создание симуляции с оптимизациями для Safari
     const simulation = d3.forceSimulation(simNodes)
       .force('link', d3.forceLink(simEdges)
         .id((d: any) => d.id)
@@ -184,13 +186,15 @@ export function useSimulation({
         .strength(0.5)
       )
       .force('charge', d3.forceManyBody()
-        .strength(-300)
-        .distanceMax(400)
+        .strength(isSafari && nodes.length > 50 ? -200 : -300) // Уменьшаем силу для Safari
+        .distanceMax(isSafari && nodes.length > 50 ? 300 : 400) // Уменьшаем радиус для Safari
+        .theta(isSafari && nodes.length > 50 ? 1.2 : 0.9) // Увеличиваем theta для Safari (меньше точность, больше скорость)
       )
       .force('center', d3.forceCenter(dimensions.width / 2, dimensions.height / 2))
       .force('collision', d3.forceCollide()
         .radius(60)
         .strength(0.7)
+        .iterations(isSafari && nodes.length > 50 ? 1 : 2) // Меньше итераций для Safari
       )
       // Добавляем силу, которая удерживает несвязанные узлы ближе к центру
       .force('position', d3.forceRadial((d: SimulationNode) => {
@@ -203,8 +207,9 @@ export function useSimulation({
         // Несвязанные узлы притягиваются к радиусу 200 от центра
         return hasConnection ? 0 : 200;
       }, dimensions.width / 2, dimensions.height / 2).strength(0.1))
-      .velocityDecay(0.6)
-      .alphaTarget(0);
+      .velocityDecay(isSafari && nodes.length > 50 ? 0.7 : 0.6) // Быстрее затухание для Safari
+      .alphaTarget(0)
+      .alphaDecay(isSafari && nodes.length > 50 ? 0.05 : 0.0228); // Быстрее остановка симуляции для Safari
 
     simulationRef.current = simulation;
     
@@ -212,19 +217,26 @@ export function useSimulation({
     simulation.tick(10);
 
     let lastDrawTime = 0;
-    const MIN_DRAW_INTERVAL = 16; // ~60 FPS
+    const MIN_DRAW_INTERVAL = isSafari && nodes.length > 50 ? 33 : 16; // ~30 FPS для Safari с большими графами
 
     // Обновление позиций при каждом тике
     simulation.on('tick', () => {
-      // Сохраняем текущие позиции узлов
-      simNodes.forEach(node => {
-        nodePositionsRef.current.set(node.id, { 
-          x: node.x, 
-          y: node.y,
-          fx: node.fx || null,
-          fy: node.fy || null
+      tickCounter.current++;
+      
+      // Для Safari с большими графами обновляем позиции реже
+      const shouldUpdatePositions = !isSafari || nodes.length <= 50 || tickCounter.current % 2 === 0;
+      
+      if (shouldUpdatePositions) {
+        // Сохраняем текущие позиции узлов
+        simNodes.forEach(node => {
+          nodePositionsRef.current.set(node.id, { 
+            x: node.x, 
+            y: node.y,
+            fx: node.fx || null,
+            fy: node.fy || null
+          });
         });
-      });
+      }
       
       // Ограничиваем частоту перерисовки
       const now = performance.now();

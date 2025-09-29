@@ -14,7 +14,12 @@ interface GraphRendererProps {
 }
 
 export class GraphRenderer {
+  private static isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  
   static drawGrid(ctx: CanvasRenderingContext2D, dimensions: { width: number; height: number }) {
+    // Пропускаем сетку в Safari для улучшения производительности
+    if (this.isSafari) return;
+    
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
     ctx.lineWidth = 1;
     for (let x = 0; x < dimensions.width; x += 50) {
@@ -45,35 +50,59 @@ export class GraphRenderer {
     if (links) {
       const simLinks = (links as any).links();
       
-      // Рисование связей
-      simLinks.forEach((link: any) => {
-        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+      // Оптимизация для Safari: рисуем все линии одним path
+      if (this.isSafari && simNodes.length > 50) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 1;
         
-        if (!visibleNodeIds.has(sourceId) || !visibleNodeIds.has(targetId)) return;
-        
-        const sourceNode = typeof link.source === 'object' ? link.source : simNodes.find(n => n.id === sourceId);
-        const targetNode = typeof link.target === 'object' ? link.target : simNodes.find(n => n.id === targetId);
-        
-        if (sourceNode && targetNode) {
-          // Находим оригинальный edge для получения веса
-          const originalEdge = edges.find(e => 
-            (e.source === sourceId && e.target === targetId) ||
-            (e.source === targetId && e.target === sourceId)
-          );
-          const weight = originalEdge?.weight || 0.5;
+        simLinks.forEach((link: any) => {
+          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
           
-          // Белый цвет с большей насыщенностью для лучшей видимости
-          const opacity = 0.4 + (weight * 0.4); // от 0.4 (слабая) до 0.8 (сильная)
+          if (!visibleNodeIds.has(sourceId) || !visibleNodeIds.has(targetId)) return;
           
-          ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-          ctx.lineWidth = 1.5 + (weight * 3); // от 1.5 до 4.5px
-          ctx.beginPath();
-          ctx.moveTo(sourceNode.x, sourceNode.y);
-          ctx.lineTo(targetNode.x, targetNode.y);
-          ctx.stroke();
-        }
-      });
+          const sourceNode = typeof link.source === 'object' ? link.source : simNodes.find(n => n.id === sourceId);
+          const targetNode = typeof link.target === 'object' ? link.target : simNodes.find(n => n.id === targetId);
+          
+          if (sourceNode && targetNode) {
+            ctx.moveTo(sourceNode.x, sourceNode.y);
+            ctx.lineTo(targetNode.x, targetNode.y);
+          }
+        });
+        
+        ctx.stroke();
+      } else {
+        // Для других браузеров - стандартный рендеринг
+        simLinks.forEach((link: any) => {
+          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+          
+          if (!visibleNodeIds.has(sourceId) || !visibleNodeIds.has(targetId)) return;
+          
+          const sourceNode = typeof link.source === 'object' ? link.source : simNodes.find(n => n.id === sourceId);
+          const targetNode = typeof link.target === 'object' ? link.target : simNodes.find(n => n.id === targetId);
+          
+          if (sourceNode && targetNode) {
+            // Находим оригинальный edge для получения веса
+            const originalEdge = edges.find(e => 
+              (e.source === sourceId && e.target === targetId) ||
+              (e.source === targetId && e.target === sourceId)
+            );
+            const weight = originalEdge?.weight || 0.5;
+            
+            // Белый цвет с большей насыщенностью для лучшей видимости
+            const opacity = 0.4 + (weight * 0.4); // от 0.4 (слабая) до 0.8 (сильная)
+            
+            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+            ctx.lineWidth = 1.5 + (weight * 3); // от 1.5 до 4.5px
+            ctx.beginPath();
+            ctx.moveTo(sourceNode.x, sourceNode.y);
+            ctx.lineTo(targetNode.x, targetNode.y);
+            ctx.stroke();
+          }
+        });
+      }
     }
   }
 
@@ -81,12 +110,13 @@ export class GraphRenderer {
     isHovered: boolean;
     isDragged: boolean;
     clusterColors: Record<string, string>;
+    simplifiedRender?: boolean;
   }) {
-    const { isHovered, isDragged, clusterColors } = props;
+    const { isHovered, isDragged, clusterColors, simplifiedRender } = props;
     const nodeSize = 40; // Фиксированный размер без увеличения
 
-    // Свечение для активного узла
-    if (isHovered || isDragged) {
+    // Свечение для активного узла - только если не упрощенный рендер
+    if (!simplifiedRender && (isHovered || isDragged)) {
       const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeSize * 2.5);
       const color = clusterColors[node.data.cluster] || '#ea580c';
       glow.addColorStop(0, color + '40');
@@ -98,11 +128,13 @@ export class GraphRenderer {
       ctx.fill();
     }
 
-    // Тень для узла
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 2;
+    // Тень для узла - отключаем для упрощенного рендера
+    if (!simplifiedRender) {
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+    }
 
     // Фон для узла с цветом кластера
     const bgGradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeSize);
@@ -145,8 +177,8 @@ export class GraphRenderer {
     ctx.textAlign = 'center';
     ctx.fillText(node.data.name, node.x, node.y + nodeSize + 20);
 
-    // Топ-3 тега при наведении
-    if ((isHovered || isDragged) && node.data.tags.length > 0) {
+    // Топ-3 тега при наведении - отключаем для упрощенного рендера
+    if (!simplifiedRender && (isHovered || isDragged) && node.data.tags.length > 0) {
       // Сохраняем состояние контекста
       ctx.save();
       
@@ -219,12 +251,16 @@ export class GraphRenderer {
       ? simNodes.filter(n => n.data.cluster === selectedCluster)
       : simNodes;
 
+    // Определяем упрощенный рендер для Safari с большими графами
+    const simplifiedRender = this.isSafari && simNodes.length > 50;
+
     // Рисуем узлы
     visibleNodes.forEach(node => {
       this.drawNode(ctx, node, {
         isHovered: node.id === hoveredNode,
         isDragged: draggedNode?.id === node.id,
-        clusterColors
+        clusterColors,
+        simplifiedRender
       });
     });
   }
