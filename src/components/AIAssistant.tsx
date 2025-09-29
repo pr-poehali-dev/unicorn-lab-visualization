@@ -70,7 +70,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
     if (isLoading) {
       const interval = setInterval(() => {
         setLoadingTextIndex((prev) => (prev + 1) % loadingTexts.length);
-      }, 2000); // Change text every 2 seconds
+      }, 6000); // Change text every 6 seconds
       
       return () => clearInterval(interval);
     } else {
