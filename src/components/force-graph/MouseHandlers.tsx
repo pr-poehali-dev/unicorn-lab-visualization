@@ -193,6 +193,7 @@ export function useMouseHandlers({
         
         setPan({ ...panRef.current });
         panStartPos.current = { x: e.clientX, y: e.clientY };
+        drawGraph(); // ВАЖНО: перерисовываем граф
         return;
       }
       
@@ -209,6 +210,7 @@ export function useMouseHandlers({
         draggedNode.fx = transformedX;
         draggedNode.fy = transformedY;
         simulationRef.current?.alpha(0.3).restart();
+        drawGraph(); // ВАЖНО: перерисовываем граф
       }
     };
 
@@ -255,7 +257,7 @@ export function useMouseHandlers({
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode]);
+  }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode, drawGraph]);
 
   // Глобальные touch обработчики для предотвращения зависания на мобильных
   useEffect(() => {
@@ -277,6 +279,7 @@ export function useMouseHandlers({
         
         setPan({ ...panRef.current });
         panStartPos.current = { x: touch.clientX, y: touch.clientY };
+        drawGraph(); // ВАЖНО: перерисовываем граф
         return;
       }
       
@@ -293,6 +296,7 @@ export function useMouseHandlers({
         draggedNode.fx = transformedX;
         draggedNode.fy = transformedY;
         simulationRef.current?.alpha(0.3).restart();
+        drawGraph(); // ВАЖНО: перерисовываем граф
       }
     };
 
@@ -340,7 +344,7 @@ export function useMouseHandlers({
       document.removeEventListener('touchmove', handleGlobalTouchMove);
       document.removeEventListener('touchend', handleGlobalTouchEnd);
     };
-  }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode]);
+  }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode, drawGraph]);
 
   // Проверка hover состояния
   useEffect(() => {
