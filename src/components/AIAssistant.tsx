@@ -190,9 +190,9 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ entrepreneurs, onSelectUsers,
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center text-muted-foreground">
             <img 
-              src="https://cdn.poehali.dev/files/169dac9a-0adb-4751-8718-cff6fc8621e3.png" 
+              src="https://cdn.poehali.dev/files/2857d5c6-ed63-4303-8220-26e8a2a2df8c.png" 
               alt="AI Assistant Logo" 
-              className="w-12 h-12 mx-auto mb-4 opacity-20 dark:invert"
+              className="w-12 h-12 mx-auto mb-4 opacity-20"
             />
             <p className="text-sm">Задайте вопрос об участниках сообщества</p>
             <p className="text-xs mt-2">Например: «Найди разработчиков для ИИ проекта»</p>
