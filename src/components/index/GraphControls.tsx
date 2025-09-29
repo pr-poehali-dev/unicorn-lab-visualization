@@ -21,7 +21,7 @@ const GraphControls: React.FC<GraphControlsProps> = ({
     <>
       {/* Счетчик узлов и кнопка сброса */}
       <div className="absolute top-8 right-8 flex items-center gap-2">
-        <Button
+        {/* <Button
           onClick={onToggleParser}
           variant="outline"
           size="icon"
@@ -29,15 +29,15 @@ const GraphControls: React.FC<GraphControlsProps> = ({
           title={showParser ? 'Скрыть парсер' : 'Показать парсер'}
         >
           <Icon name="Upload" size={16} />
-        </Button>
-        {/* <Button
+        </Button> */}
+        <Button
           onClick={() => forceGraphRef.current?.resetNodePositions()}
           variant="outline"
           size="icon"
           className="bg-background/90 backdrop-blur h-8 w-8"
         >
           <Icon name="RotateCcw" size={16} />
-        </Button> */}
+        </Button>
       </div>
 
       {/* Кнопки управления зумом */}
