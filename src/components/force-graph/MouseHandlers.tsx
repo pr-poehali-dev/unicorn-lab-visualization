@@ -36,6 +36,7 @@ export function useMouseHandlers({
   const isPanning = useRef(false);
   const panStartPos = useRef<{ x: number; y: number } | null>(null);
   const canvasRectRef = useRef<DOMRect | null>(null);
+  const rafIdRef = useRef<number | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -193,7 +194,14 @@ export function useMouseHandlers({
         
         setPan({ ...panRef.current });
         panStartPos.current = { x: e.clientX, y: e.clientY };
-        drawGraph(); // ВАЖНО: перерисовываем граф
+        
+        // Throttle через RAF для 60 FPS
+        if (rafIdRef.current === null) {
+          rafIdRef.current = requestAnimationFrame(() => {
+            drawGraph();
+            rafIdRef.current = null;
+          });
+        }
         return;
       }
       
@@ -210,7 +218,14 @@ export function useMouseHandlers({
         draggedNode.fx = transformedX;
         draggedNode.fy = transformedY;
         simulationRef.current?.alpha(0.3).restart();
-        drawGraph(); // ВАЖНО: перерисовываем граф
+        
+        // Throttle через RAF для 60 FPS
+        if (rafIdRef.current === null) {
+          rafIdRef.current = requestAnimationFrame(() => {
+            drawGraph();
+            rafIdRef.current = null;
+          });
+        }
       }
     };
 
@@ -256,6 +271,10 @@ export function useMouseHandlers({
     return () => {
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
     };
   }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode, drawGraph]);
 
@@ -279,7 +298,14 @@ export function useMouseHandlers({
         
         setPan({ ...panRef.current });
         panStartPos.current = { x: touch.clientX, y: touch.clientY };
-        drawGraph(); // ВАЖНО: перерисовываем граф
+        
+        // Throttle через RAF для 60 FPS
+        if (rafIdRef.current === null) {
+          rafIdRef.current = requestAnimationFrame(() => {
+            drawGraph();
+            rafIdRef.current = null;
+          });
+        }
         return;
       }
       
@@ -296,7 +322,14 @@ export function useMouseHandlers({
         draggedNode.fx = transformedX;
         draggedNode.fy = transformedY;
         simulationRef.current?.alpha(0.3).restart();
-        drawGraph(); // ВАЖНО: перерисовываем граф
+        
+        // Throttle через RAF для 60 FPS
+        if (rafIdRef.current === null) {
+          rafIdRef.current = requestAnimationFrame(() => {
+            drawGraph();
+            rafIdRef.current = null;
+          });
+        }
       }
     };
 
@@ -343,6 +376,10 @@ export function useMouseHandlers({
     return () => {
       document.removeEventListener('touchmove', handleGlobalTouchMove);
       document.removeEventListener('touchend', handleGlobalTouchEnd);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
     };
   }, [draggedNode, panRef, zoomRef, setPan, onNodeClick, nodePositionsRef, simulationRef, setDraggedNode, drawGraph]);
 
