@@ -8,7 +8,7 @@
       "expectedBody": ""
     },
     {
-      "name": "Test POST with search query",
+      "name": "Test web chat request",
       "method": "POST",
       "path": "/",
       "body": {
@@ -27,16 +27,26 @@
       "bodyMatcher": "partial"
     },
     {
-      "name": "Test POST with empty messages",
+      "name": "Test Telegram webhook without text",
       "method": "POST",
       "path": "/",
       "body": {
-        "messages": []
+        "update_id": 123456790,
+        "message": {
+          "message_id": 2,
+          "from": {
+            "id": 987654321,
+            "first_name": "Test User"
+          },
+          "chat": {
+            "id": 987654321,
+            "type": "private"
+          }
+        }
       },
       "expectedStatus": 200,
       "expectedBody": {
-        "completion_text": "string",
-        "related_users_ids": []
+        "ok": true
       },
       "bodyMatcher": "partial"
     }
