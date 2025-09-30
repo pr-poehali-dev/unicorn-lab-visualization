@@ -27,9 +27,13 @@ class TelegramUpdate(BaseModel):
     update_id: int
     message: Optional[TelegramMessage] = None
 
+def get_db_connection():
+    """Get database connection"""
+    return psycopg2.connect(os.environ['DATABASE_URL'])
+
 def get_all_entrepreneurs() -> List[Dict[str, Any]]:
     """Load all entrepreneurs from database"""
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    conn = get_db_connection()
     cur = conn.cursor()
     
     try:
@@ -55,6 +59,47 @@ def get_all_entrepreneurs() -> List[Dict[str, Any]]:
             })
         
         return entrepreneurs
+        
+    finally:
+        cur.close()
+        conn.close()
+
+def save_telegram_message(chat_id: int, message_id: int, user_id: Optional[int], role: str, content: str) -> None:
+    """Save message to database"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("""
+            INSERT INTO t_p95295728_unicorn_lab_visualiz.telegram_messages 
+            (chat_id, message_id, user_id, role, content)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (chat_id, message_id) DO NOTHING
+        """, (chat_id, message_id, user_id, role, content))
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+def get_telegram_history(chat_id: int, limit: int = 20) -> List[ChatMessage]:
+    """Load chat history from database"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("""
+            SELECT role, content
+            FROM t_p95295728_unicorn_lab_visualiz.telegram_messages
+            WHERE chat_id = %s
+            ORDER BY created_at DESC
+            LIMIT %s
+        """, (chat_id, limit))
+        
+        messages = []
+        for row in reversed(cur.fetchall()):
+            messages.append(ChatMessage(role=row[0], content=row[1]))
+        
+        return messages
         
     finally:
         cur.close()
@@ -235,6 +280,8 @@ def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
     
     print(f"Processing Telegram message from chat_id={chat_id}, user_id={user_id}: {user_message}")
     
+    save_telegram_message(chat_id, message_id, user_id, 'user', user_message)
+    
     loading_texts = [
         "Думаю...",
         "Изучаю участников...",
@@ -262,7 +309,9 @@ def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
     animation_thread.start()
     
     try:
-        messages = [ChatMessage(role="user", content=user_message)]
+        history = get_telegram_history(chat_id, limit=20)
+        messages = history + [ChatMessage(role="user", content=user_message)]
+        
         completion_text, related_users_ids, entrepreneurs = process_ai_request(messages)
         formatted_text = format_response_for_telegram(completion_text, related_users_ids, entrepreneurs)
         
@@ -270,6 +319,8 @@ def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
         time.sleep(0.5)
         
         edit_telegram_message(chat_id, status_message_id, formatted_text)
+        
+        save_telegram_message(chat_id, status_message_id, None, 'assistant', completion_text)
         
         return {
             'statusCode': 200,
@@ -283,6 +334,8 @@ def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
         
         error_text = "По вашему запросу ничего не нашёл, попробуйте переформулировать запрос и отправить еще один."
         edit_telegram_message(chat_id, status_message_id, error_text)
+        
+        save_telegram_message(chat_id, status_message_id, None, 'assistant', error_text)
         
         print(f"Error in Telegram handler: {str(e)}")
         import traceback
