@@ -223,7 +223,7 @@ const Index: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-card">
+    <div className="flex h-screen bg-card">
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
@@ -275,44 +275,50 @@ const Index: React.FC = () => {
               />
             )}
 
-            <FilterControls
-              clusters={clusters}
-              selectedCluster={selectedCluster}
-              selectedTags={selectedTags}
-              tagFilterMode={tagFilterMode}
-              showClusterDropdown={showClusterDropdown}
-              showTagsDropdown={showTagsDropdown}
-              tagCategories={tagCategories}
-              aiSelectedUserIds={aiSelectedUserIds}
-              onSetCluster={handleSetCluster}
-              onToggleTag={handleToggleTag}
-              onToggleClusterDropdown={toggleClusterDropdown}
-              onToggleTagsDropdown={toggleTagsDropdown}
-              onClearTags={handleClearTags}
-              onSetTagFilterMode={setTagFilterMode}
-              onClearAIFilter={() => {
-                setIsTransitioning(true);
-                setTimeout(() => {
-                  setAiSelectedUserIds([]);
-                  setIsTransitioning(false);
-                }, 150);
-              }}
-            />
+            {!isMobile && (
+              <FilterControls
+                clusters={clusters}
+                selectedCluster={selectedCluster}
+                selectedTags={selectedTags}
+                tagFilterMode={tagFilterMode}
+                showClusterDropdown={showClusterDropdown}
+                showTagsDropdown={showTagsDropdown}
+                tagCategories={tagCategories}
+                aiSelectedUserIds={aiSelectedUserIds}
+                onSetCluster={handleSetCluster}
+                onToggleTag={handleToggleTag}
+                onToggleClusterDropdown={toggleClusterDropdown}
+                onToggleTagsDropdown={toggleTagsDropdown}
+                onClearTags={handleClearTags}
+                onSetTagFilterMode={setTagFilterMode}
+                onClearAIFilter={() => {
+                  setIsTransitioning(true);
+                  setTimeout(() => {
+                    setAiSelectedUserIds([]);
+                    setIsTransitioning(false);
+                  }, 150);
+                }}
+              />
+            )}
 
-            <GraphControls
-              showParser={showParser}
-              loading={loading}
-              filteredCount={filteredEntrepreneurs.length}
-              forceGraphRef={forceGraphRef}
-              onToggleParser={() => setShowParser(!showParser)}
-            />
+            {!isMobile && (
+              <GraphControls
+                showParser={showParser}
+                loading={loading}
+                filteredCount={filteredEntrepreneurs.length}
+                forceGraphRef={forceGraphRef}
+                onToggleParser={() => setShowParser(!showParser)}
+              />
+            )}
 
-            <GraphStats
-              tagsConfig={tagsConfig}
-              filteredEntrepreneurs={filteredEntrepreneurs}
-              totalEntrepreneurs={entrepreneurs.length}
-              loading={loading}
-            />
+            {!isMobile && (
+              <GraphStats
+                tagsConfig={tagsConfig}
+                filteredEntrepreneurs={filteredEntrepreneurs}
+                totalEntrepreneurs={entrepreneurs.length}
+                loading={loading}
+              />
+            )}
 
             {selectedParticipant && popupPosition && (
               <ParticipantPopup
