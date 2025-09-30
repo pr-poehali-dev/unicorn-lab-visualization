@@ -281,7 +281,7 @@ def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
     print(f"Processing Telegram message from chat_id={chat_id}, user_id={user_id}: {user_message}")
     
     if user_message.strip() == '/start':
-        welcome_message = """👋 Привет! Я AI-ассистент сообщества Unicorn Lab.
+        welcome_message = """👋 Привет! Я AI-ассистент сообщества [UNICORN LAB](https://t.me/chat_oskarhartmann_bot).
 
 Моя цель — помочь вам удобно находить участников сообщества по вашему запросу.
 
