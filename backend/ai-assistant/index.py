@@ -253,7 +253,7 @@ def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
     def animate_status():
         index = 0
         while not stop_animation.is_set():
-            time.sleep(3)
+            time.sleep(5)
             if not stop_animation.is_set():
                 index = (index + 1) % len(loading_texts)
                 edit_telegram_message(chat_id, status_message_id, loading_texts[index])
