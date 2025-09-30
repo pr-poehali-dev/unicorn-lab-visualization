@@ -163,7 +163,7 @@ def format_response_for_telegram(
     
     return formatted_text
 
-def send_telegram_message(chat_id: int, text: str, reply_to_message_id: Optional[int] = None) -> None:
+def send_telegram_message(chat_id: int, text: str, reply_to_message_id: Optional[int] = None) -> Dict[str, Any]:
     """Send message to Telegram via Bot API"""
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     if not bot_token:
@@ -187,9 +187,36 @@ def send_telegram_message(chat_id: int, text: str, reply_to_message_id: Optional
     if not response.ok:
         print(f"Telegram API error: {response.text}")
         raise Exception(f"Failed to send Telegram message: {response.status_code}")
+    
+    return response.json()
+
+def edit_telegram_message(chat_id: int, message_id: int, text: str) -> None:
+    """Edit existing Telegram message"""
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not bot_token:
+        raise Exception("TELEGRAM_BOT_TOKEN not configured")
+    
+    import requests
+    
+    url = f"https://api.telegram.org/bot{bot_token}/editMessageText"
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": False
+    }
+    
+    response = requests.post(url, json=payload)
+    
+    if not response.ok:
+        print(f"Telegram edit error: {response.text}")
 
 def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle Telegram webhook request"""
+    """Handle Telegram webhook request with animated status messages"""
+    import time
+    import threading
+    
     print(f"Received Telegram update: {json.dumps(body_data)}")
     
     update = TelegramUpdate(**body_data)
@@ -208,36 +235,100 @@ def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
     
     print(f"Processing Telegram message from chat_id={chat_id}, user_id={user_id}: {user_message}")
     
-    messages = [ChatMessage(role="user", content=user_message)]
-    completion_text, related_users_ids, entrepreneurs = process_ai_request(messages)
-    formatted_text = format_response_for_telegram(completion_text, related_users_ids, entrepreneurs)
+    loading_texts = [
+        "Думаю...",
+        "Изучаю участников...",
+        "Подождите одну минуту...",
+        "Выявляю совпадения...",
+        "Формирую кластеры...",
+        "Выстраиваю связи...",
+        "Формирую ответ...",
+    ]
     
-    send_telegram_message(chat_id, formatted_text, reply_to_message_id=message_id)
+    status_message = send_telegram_message(chat_id, loading_texts[0], reply_to_message_id=message_id)
+    status_message_id = status_message['result']['message_id']
     
-    return {
-        'statusCode': 200,
-        'headers': {'Content-Type': 'application/json'},
-        'body': json.dumps({'ok': True})
-    }
+    stop_animation = threading.Event()
+    
+    def animate_status():
+        index = 0
+        while not stop_animation.is_set():
+            time.sleep(3)
+            if not stop_animation.is_set():
+                index = (index + 1) % len(loading_texts)
+                edit_telegram_message(chat_id, status_message_id, loading_texts[index])
+    
+    animation_thread = threading.Thread(target=animate_status, daemon=True)
+    animation_thread.start()
+    
+    try:
+        messages = [ChatMessage(role="user", content=user_message)]
+        completion_text, related_users_ids, entrepreneurs = process_ai_request(messages)
+        formatted_text = format_response_for_telegram(completion_text, related_users_ids, entrepreneurs)
+        
+        stop_animation.set()
+        time.sleep(0.5)
+        
+        edit_telegram_message(chat_id, status_message_id, formatted_text)
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({'ok': True})
+        }
+        
+    except Exception as e:
+        stop_animation.set()
+        time.sleep(0.5)
+        
+        error_text = "По вашему запросу ничего не нашёл, попробуйте переформулировать запрос и отправить еще один."
+        edit_telegram_message(chat_id, status_message_id, error_text)
+        
+        print(f"Error in Telegram handler: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({'ok': False, 'error': str(e)})
+        }
 
 def handle_web_chat(body_data: Dict[str, Any]) -> Dict[str, Any]:
     """Handle web chat request"""
-    messages_data = body_data.get('messages', [])
-    messages = [ChatMessage(**msg) for msg in messages_data]
-    
-    completion_text, related_users_ids, _ = process_ai_request(messages)
-    
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        },
-        'body': json.dumps({
-            'completion_text': completion_text,
-            'related_users_ids': related_users_ids
-        }, ensure_ascii=False)
-    }
+    try:
+        messages_data = body_data.get('messages', [])
+        messages = [ChatMessage(**msg) for msg in messages_data]
+        
+        completion_text, related_users_ids, _ = process_ai_request(messages)
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({
+                'completion_text': completion_text,
+                'related_users_ids': related_users_ids
+            }, ensure_ascii=False)
+        }
+    except Exception as e:
+        print(f"Error in web chat handler: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({
+                'completion_text': 'По вашему запросу ничего не нашёл, попробуйте переформулировать запрос и отправить еще один.',
+                'related_users_ids': []
+            }, ensure_ascii=False)
+        }
 
 def is_telegram_update(body_data: Dict[str, Any]) -> bool:
     """Check if request is from Telegram webhook"""
@@ -282,22 +373,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         print(f"Error in AI assistant: {str(e)}")
         import traceback
         traceback.print_exc()
-        
-        try:
-            body_data = json.loads(event.get('body', '{}'))
-            if is_telegram_update(body_data) and body_data.get('message'):
-                chat_id = body_data['message']['chat']['id']
-                send_telegram_message(
-                    chat_id, 
-                    "Извините, произошла ошибка при обработке вашего запроса. Попробуйте позже."
-                )
-                return {
-                    'statusCode': 200,
-                    'headers': {'Content-Type': 'application/json'},
-                    'body': json.dumps({'ok': False, 'error': str(e)})
-                }
-        except:
-            pass
         
         return {
             'statusCode': 500,
