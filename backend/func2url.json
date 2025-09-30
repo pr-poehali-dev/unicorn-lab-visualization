@@ -1,4 +1,5 @@
 {
+  "telegram-bot": "https://functions.poehali.dev/0910707b-a42f-4a30-8703-10b3af653ec3",
   "ai-assistant": "https://functions.poehali.dev/3a07f334-23a1-47ed-931c-c00deaa3ff1f",
   "get-tags-config": "https://functions.poehali.dev/1536c1cd-6d82-45ff-a9f2-f6e366617cb2",
   "import-with-clustering": "https://functions.poehali.dev/66267fe8-bc76-4f15-a55a-a89fd93c694c",

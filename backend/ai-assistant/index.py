@@ -1,102 +1,10 @@
 import json
-import os
-import psycopg2
-from openai import OpenAI
-from typing import Dict, List, Any, Optional
-from pydantic import BaseModel, Field
-
-class AssistantResponse(BaseModel):
-    """Structured response from AI assistant"""
-    completion_text: str = Field(description="Assistant's response text")
-    related_users_ids: List[str] = Field(description="IDs of entrepreneurs related to the response", default=[])
-
-class ChatMessage(BaseModel):
-    """Chat message structure"""
-    role: str = Field(pattern="^(user|assistant)$")
-    content: str
-
-def get_all_entrepreneurs() -> List[Dict[str, Any]]:
-    """Load all entrepreneurs from database"""
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor()
-    
-    try:
-        cur.execute("""
-            SELECT 
-                e.id,
-                e.name,
-                e.description,
-                e.goal
-            FROM t_p95295728_unicorn_lab_visualiz.entrepreneurs e
-            ORDER BY e.id
-        """)
-        
-        entrepreneurs = []
-        for row in cur.fetchall():
-            entrepreneurs.append({
-                "id": row[0],
-                "name": row[1],
-                "description": row[2] or "",
-                "goal": row[3] or ""
-            })
-        
-        return entrepreneurs
-        
-    finally:
-        cur.close()
-        conn.close()
-
-def create_system_prompt(entrepreneurs: List[Dict[str, Any]]) -> str:
-    """Create system prompt with all entrepreneurs data"""
-    base_prompt = """Ты - AI ассистент для поиска и анализа участников сообщества предпринимателей.
-
-БАЗА ДАННЫХ УЧАСТНИКОВ:
-"""
-    
-    # Add each entrepreneur
-    for e in entrepreneurs:
-        base_prompt += f"\nID: {str(e['id'])}\nИмя: {e['name']}\nОписание: {e['description']}\nЦель: {e['goal']}\n---"
-    
-    base_prompt += """
-
-ТВОИ ЗАДАЧИ:
-1. Помогать находить подходящих участников по запросам пользователя
-2. Анализировать связи и возможности для сотрудничества
-3. Давать рекомендации по нетворкингу
-
-ВАЖНЫЕ ПРАВИЛА ОТВЕТА:
-- В тексте ответа НИКОГДА не упоминай ID участников - это внутренние технические данные
-- Используй ТОЛЬКО имена участников (например: "Александр Иванов", "Мария Петрова")
-- Будь дружелюбным и говори простым языком, как личный помощник
-- Объясняй, почему именно эти люди подходят под запрос
-- Можешь предлагать неочевидные связи и синергии
-- Структурируй ответ: сначала кратко, потом детали про каждого
-
-ТЕХНИЧЕСКИЕ ПРАВИЛА (не для текста):
-- В поле related_users_ids возвращай ID найденных участников для системы
-- Если не нашел подходящих - верни пустой список related_users_ids
-- related_users_ids используется только для подсветки на графе, не упоминай это в тексте
-
-ПРИМЕРЫ ХОРОШИХ ОТВЕТОВ:
-"Нашел 3 отличных кандидата для вашего AI проекта:
-
-**Иван Сидоров** - разработчик с опытом в машинном обучении, ищет команду для стартапа.
-
-**Елена Козлова** - продакт-менеджер в сфере AI, может помочь с продуктовой стратегией.
-
-**Петр Николаев** - инвестор, активно вкладывается в AI проекты на ранних стадиях."
-
-ФОРМАТ ОТВЕТА:
-{
-    "completion_text": "Твой текстовый ответ БЕЗ упоминания ID",
-    "related_users_ids": ["141", "142", "143"]  // ID для системы, не упоминать в тексте
-}"""
-    
-    return base_prompt
+from typing import Dict, Any
+from shared_logic import ChatMessage, process_ai_request
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    AI Assistant for finding entrepreneurs
+    AI Assistant for web chat - finding entrepreneurs
     Args: event with httpMethod, body containing messages history
     Returns: HTTP response with assistant's answer and related user IDs
     """
@@ -130,50 +38,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Validate messages
         messages = [ChatMessage(**msg) for msg in messages_data]
         
-        # Get all entrepreneurs
-        entrepreneurs = get_all_entrepreneurs()
-        if not entrepreneurs:
-            raise Exception("No entrepreneurs found in database")
+        # Process AI request using shared logic
+        completion_text, related_users_ids, _ = process_ai_request(messages)
         
-        # Create system prompt
-        system_prompt = create_system_prompt(entrepreneurs)
-        
-        # Initialize OpenAI client with proxy configuration
-        api_key = os.environ.get('OPENAI_API_KEY')
-        proxy_url = os.environ.get('OPENAI_HTTP_PROXY')
-        
-        http_client = None
-        if proxy_url:
-            import httpx
-            http_client = httpx.Client(proxies=proxy_url)
-            print(f"Using proxy: {proxy_url}")
-        else:
-            print("WARNING: No proxy configured, OpenAI might be blocked")
-        
-        client = OpenAI(api_key=api_key, http_client=http_client)
-        
-        # Prepare messages for OpenAI
-        openai_messages = [{"role": "system", "content": system_prompt}]
-        
-        # Add chat history (last 20 messages)
-        for msg in messages[-20:]:
-            openai_messages.append({
-                "role": msg.role,
-                "content": msg.content
-            })
-        
-        # Get completion with structured output
-        completion = client.beta.chat.completions.parse(
-            model="gpt-5",  # Using full GPT-5 model for better analysis
-            messages=openai_messages,
-            response_format=AssistantResponse
-            # temperature not supported for gpt-5
-        )
-        
-        # Parse response
-        assistant_response = completion.choices[0].message.parsed
-        
-        # Return response
+        # Return response for web
         return {
             'statusCode': 200,
             'headers': {
@@ -181,8 +49,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'completion_text': assistant_response.completion_text,
-                'related_users_ids': assistant_response.related_users_ids
+                'completion_text': completion_text,
+                'related_users_ids': related_users_ids
             }, ensure_ascii=False)
         }
         
