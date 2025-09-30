@@ -298,7 +298,17 @@ def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
 
 Просто напишите мне, что вы ищете, и я подберу подходящих людей! 🚀"""
         
-        send_telegram_message(chat_id, welcome_message)
+        bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        import requests
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": welcome_message,
+            "parse_mode": "Markdown",
+            "disable_web_page_preview": True
+        }
+        requests.post(url, json=payload)
+        
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json'},
