@@ -233,7 +233,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
     >
       {/* Messages */}
       {messages.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center p-6">
+        <div className="flex-1 flex items-center justify-center px-6">
           <div className="text-center text-muted-foreground">
             <img
               src="https://cdn.poehali.dev/files/2857d5c6-ed63-4303-8220-26e8a2a2df8c.png"
@@ -247,7 +247,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
           </div>
         </div>
       ) : (
-        <ScrollArea ref={scrollRef} className="flex-1 p-6">
+        <ScrollArea ref={scrollRef} className="flex-1 px-6">
           <div className="space-y-8">
             {messages.map((message, index) => (
               <div key={index} className="w-full">
