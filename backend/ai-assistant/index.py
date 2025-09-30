@@ -343,44 +343,67 @@ def handle_telegram_webhook(body_data: Dict[str, Any]) -> Dict[str, Any]:
     animation_thread = threading.Thread(target=animate_status, daemon=True)
     animation_thread.start()
     
-    try:
-        history = get_telegram_history(chat_id, limit=20)
-        messages = history + [ChatMessage(role="user", content=user_message)]
+    result = {'completed': False, 'data': None, 'error': None}
+    
+    def process_request():
+        try:
+            history = get_telegram_history(chat_id, limit=20)
+            messages = history + [ChatMessage(role="user", content=user_message)]
+            
+            completion_text, related_users_ids, entrepreneurs = process_ai_request(messages)
+            formatted_text = format_response_for_telegram(completion_text, related_users_ids, entrepreneurs)
+            
+            result['data'] = (completion_text, formatted_text)
+            result['completed'] = True
+        except Exception as e:
+            result['error'] = e
+            result['completed'] = True
+    
+    processing_thread = threading.Thread(target=process_request, daemon=True)
+    processing_thread.start()
+    
+    processing_thread.join(timeout=55.0)
+    
+    stop_animation.set()
+    time.sleep(0.5)
+    
+    if not result['completed'] or result['data'] is None:
+        error_text = "По вашему запросу ничего не нашёл, попробуйте переформулировать запрос и отправить еще один."
+        edit_telegram_message(chat_id, status_message_id, error_text)
+        save_telegram_message(chat_id, status_message_id, None, 'assistant', error_text)
         
-        completion_text, related_users_ids, entrepreneurs = process_ai_request(messages)
-        formatted_text = format_response_for_telegram(completion_text, related_users_ids, entrepreneurs)
-        
-        stop_animation.set()
-        time.sleep(0.5)
-        
-        edit_telegram_message(chat_id, status_message_id, formatted_text)
-        
-        save_telegram_message(chat_id, status_message_id, None, 'assistant', completion_text)
+        print(f"Telegram request timeout after 55 seconds")
         
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'ok': True})
+            'body': json.dumps({'ok': False, 'error': 'timeout'})
         }
-        
-    except Exception as e:
-        stop_animation.set()
-        time.sleep(0.5)
-        
+    
+    if result['error']:
         error_text = "По вашему запросу ничего не нашёл, попробуйте переформулировать запрос и отправить еще один."
         edit_telegram_message(chat_id, status_message_id, error_text)
-        
         save_telegram_message(chat_id, status_message_id, None, 'assistant', error_text)
         
-        print(f"Error in Telegram handler: {str(e)}")
+        print(f"Error in Telegram handler: {str(result['error'])}")
         import traceback
         traceback.print_exc()
         
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'ok': False, 'error': str(e)})
+            'body': json.dumps({'ok': False, 'error': str(result['error'])})
         }
+    
+    completion_text, formatted_text = result['data']
+    edit_telegram_message(chat_id, status_message_id, formatted_text)
+    save_telegram_message(chat_id, status_message_id, None, 'assistant', completion_text)
+    
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json'},
+        'body': json.dumps({'ok': True})
+    }
 
 def handle_web_chat(body_data: Dict[str, Any]) -> Dict[str, Any]:
     """Handle web chat request"""
