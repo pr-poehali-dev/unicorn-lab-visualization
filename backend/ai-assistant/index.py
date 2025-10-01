@@ -181,7 +181,7 @@ def process_ai_request(messages: List[ChatMessage]) -> Tuple[str, List[str], Lis
         openai_messages.append({"role": msg.role, "content": msg.content})
     
     completion = client.beta.chat.completions.parse(
-        model="gpt-5-nano",
+        model="gpt-4.1-mini",
         messages=openai_messages,
         response_format=AssistantResponse
     )
